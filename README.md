@@ -16,6 +16,11 @@ checkout, PHP 8.1 to 8.4. Orders in pounds only.
    total, in pence; reference is the order number) and sends the customer to the
    BriizPay pay link with `start=1`, so they land on choosing their bank without
    a second click. The pay link is stored on the order, so a reload reuses it.
+   The order's lines go with it (each item after its discount and with its tax,
+   and shipping), so the customer's receipt lists what they bought. Adobe
+   Commerce gift cards, store credit and reward points are lines of their own.
+   Any other difference from the grand total is sent as a Rounding, Other
+   discounts or Other charges line, so the lines always add up to the charge.
 3. **Paid.** BriizPay sends a signed `payment_request.paid` webhook to
    `/briizpay/webhook`. The module checks the signature, the amount and that the
    payment request id matches the one stored on that order, then invoices the
@@ -69,5 +74,5 @@ php Test/run.php
 ```
 
 Pins the webhook signature against a vector produced by the API's own signing
-code, and pence conversion. The rest is exercised end to end against a Mage-OS
+code, pence conversion, and the receipt lines. The rest is exercised end to end against a Mage-OS
 testbed and the BriizPay test environment.

@@ -3,7 +3,7 @@
     "description": "BriizPay pay by bank for Magento 2: UK Open Banking payments at checkout, settled to your bank account.",
     "type": "magento2-module",
     "license": "OSL-3.0",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "require": {
         "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
         "magento/framework": "*",
