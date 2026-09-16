@@ -17,9 +17,10 @@ checkout, PHP 8.1 to 8.4. Orders in pounds only.
    BriizPay pay link with `start=1`, so they land on choosing their bank without
    a second click. The pay link is stored on the order, so a reload reuses it.
    The order's lines go with it (each item after its discount and with its tax,
-   and shipping), so the customer's receipt lists what they bought. They are
-   left out when they do not add up to the grand total to the penny, and the
-   receipt shows the order number instead.
+   and shipping), so the customer's receipt lists what they bought. Adobe
+   Commerce gift cards, store credit and reward points are lines of their own.
+   Any other difference from the grand total is sent as a Rounding, Other
+   discounts or Other charges line, so the lines always add up to the charge.
 3. **Paid.** BriizPay sends a signed `payment_request.paid` webhook to
    `/briizpay/webhook`. The module checks the signature, the amount and that the
    payment request id matches the one stored on that order, then invoices the

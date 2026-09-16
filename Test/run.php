@@ -32,6 +32,13 @@ $mugs = ['name' => 'Blue mug', 'quantity' => 2.0, 'gross' => 2500, 'taxRateBps' 
 $ship = ['name' => 'Flat Rate - Fixed', 'quantity' => 1, 'gross' => 500, 'taxRateBps' => 0, 'sku' => ''];
 $basket = LineItems::build([$mugs, $ship], 3000);
 $split = LineItems::build([['name' => 'Tea', 'quantity' => 3.0, 'gross' => 1000, 'taxRateBps' => 0]], 1000);
+$penny = LineItems::build([$mugs, $ship], 3001);
+$credit = LineItems::build([$mugs, $ship, ['name' => 'Store credit', 'quantity' => 1, 'gross' => -1000, 'taxRateBps' => 0]], 2000);
+$gift = LineItems::build([$mugs, $ship], 1000);
+$extra = LineItems::build([$mugs, $ship], 3250);
+$many = LineItems::build(array_fill(0, 150, ['name' => 'Pin', 'quantity' => 1, 'gross' => 2, 'taxRateBps' => 0]), 299);
+$linesTotal = static fn (array $lines): int => array_sum(array_map(static fn ($l) => (int) round($l['quantity'] * $l['unitPriceMinor']), $lines));
+$last = static fn (array $lines): string => end($lines)['name'] . '@' . end($lines)['unitPriceMinor'];
 
 $checks = [
     'accepts the API-signed vector' => [$s->verify($body, $header, $secret, $timestamp), true],
@@ -55,9 +62,17 @@ $checks = [
     'lines are tax inclusive at the item rate' => [$basket[0]['taxInclusive'] . '/' . $basket[0]['taxRateBps'], '1/2000'],
     'shipping is a line of its own' => [$basket[1]['name'] . '@' . $basket[1]['unitPriceMinor'], 'Flat Rate - Fixed@500'],
     'a row that will not divide is charged once' => [$split[0]['name'] . '|' . $split[0]['quantity'] . '@' . $split[0]['unitPriceMinor'], 'Tea × 3|1@1000'],
-    'a penny out sends no lines' => [LineItems::build([$mugs, $ship], 3001), null],
-    'no rows sends no lines' => [LineItems::build([], 0), null],
-    'over 100 lines sends none' => [LineItems::build(array_fill(0, 101, ['name' => 'Pin', 'quantity' => 1, 'gross' => 1, 'taxRateBps' => 0]), 101), null],
+    'lines that add up get no extra line' => [count($basket), 2],
+    'a penny out gets a rounding line' => [$last($penny), 'Rounding@1'],
+    'a rounding line keeps the lines on the total' => [$linesTotal($penny), 3001],
+    'named store credit needs no balancing line' => [$last($credit), 'Store credit@-1000'],
+    'a large shortfall is other discounts' => [$last($gift), 'Other discounts@-2000'],
+    'a large excess is other charges' => [$last($extra), 'Other charges@250'],
+    'no rows sends no lines' => [LineItems::build([], 500), null],
+    'nothing to charge sends no lines' => [LineItems::build([$mugs], 0), null],
+    'over 100 lines is cut to 100' => [count($many), 100],
+    'the tail becomes one line' => [$many[98]['name'] . '@' . $many[98]['unitPriceMinor'], '52 more items@104'],
+    'a long order still adds up' => [$linesTotal($many), 299],
     'names lose markup and entities' => [LineItems::build([['name' => '<b>Fish &amp; chips</b>', 'quantity' => 1, 'gross' => 850, 'taxRateBps' => 0]], 850)[0]['name'], 'Fish & chips'],
     'shipping VAT is worked back from its tax' => [LineItems::rateBps(600, 100), 2000],
 ];

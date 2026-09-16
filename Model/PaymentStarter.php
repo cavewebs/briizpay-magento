@@ -64,9 +64,8 @@ class PaymentStarter
                 ],
             ]),
         ];
-        // What was bought, for the customer's receipt. Left out when the lines
-        // do not add up to the grand total exactly, so the receipt falls back
-        // to the memo rather than the checkout failing.
+        // What was bought, for the customer's receipt. Any difference from the
+        // grand total is its own line, so the lines always add up to it.
         $lines = LineItems::forOrder($order);
         if ($lines !== null) {
             $body['lineItems'] = $lines;
