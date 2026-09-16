@@ -1,0 +1,14 @@
+{
+    "briizpay_webhook_event": {
+        "column": {
+            "event_id": true,
+            "created_at": true
+        },
+        "index": {
+            "BRIIZPAY_WEBHOOK_EVENT_CREATED_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    }
+}

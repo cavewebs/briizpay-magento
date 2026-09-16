@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <briizpay>
+                <active>0</active>
+                <model>BriizPayFacade</model>
+                <!-- Named, not just described: an unfamiliar name at the moment of
+                     paying is a reason to abandon. -->
+                <title>BriizPay - Pay by bank</title>
+                <description>Pay straight from your banking app. No card details needed.</description>
+                <api_key backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
+                <webhook_secret backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
+                <!-- initialize: the order is placed as Pending Payment and nothing is
+                     captured; the webhook or the return page invoices it once the
+                     bank confirms. -->
+                <payment_action>initialize</payment_action>
+                <order_status>pending_payment</order_status>
+                <currency>GBP</currency>
+                <allowspecific>0</allowspecific>
+                <sort_order>10</sort_order>
+                <is_gateway>1</is_gateway>
+                <can_initialize>1</can_initialize>
+                <can_use_checkout>1</can_use_checkout>
+                <can_use_internal>0</can_use_internal>
+                <can_authorize>0</can_authorize>
+                <can_capture>0</can_capture>
+                <can_refund>0</can_refund>
+                <can_void>0</can_void>
+                <can_cancel>1</can_cancel>
+            </briizpay>
+        </payment>
+    </default>
+</config>
