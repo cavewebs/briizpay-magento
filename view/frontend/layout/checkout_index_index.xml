@@ -7,6 +7,26 @@
                     <item name="components" xsi:type="array">
                         <item name="checkout" xsi:type="array">
                             <item name="children" xsi:type="array">
+                                <item name="sidebar" xsi:type="array">
+                                    <item name="children" xsi:type="array">
+                                        <item name="summary" xsi:type="array">
+                                            <item name="children" xsi:type="array">
+                                                <item name="totals" xsi:type="array">
+                                                    <item name="children" xsi:type="array">
+                                                        <!-- After the coupon discount (20), before shipping (30). -->
+                                                        <item name="briizpay_saving" xsi:type="array">
+                                                            <item name="component" xsi:type="string">BriizPay_PayByBank/js/view/checkout/summary/pay-by-bank-discount</item>
+                                                            <item name="sortOrder" xsi:type="string">25</item>
+                                                            <item name="config" xsi:type="array">
+                                                                <item name="title" xsi:type="string" translate="true">Pay by bank discount</item>
+                                                            </item>
+                                                        </item>
+                                                    </item>
+                                                </item>
+                                            </item>
+                                        </item>
+                                    </item>
+                                </item>
                                 <item name="steps" xsi:type="array">
                                     <item name="children" xsi:type="array">
                                         <item name="billing-step" xsi:type="array">

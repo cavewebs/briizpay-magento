@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Sales:etc/sales.xsd">
+    <!-- After tax and before the grand total in each: the discount is worked
+         out on the items with their tax, and the grand total is where it is
+         taken off. -->
+    <section name="quote">
+        <group name="totals">
+            <item name="briizpay_saving" instance="BriizPay\PayByBank\Model\Total\Quote\PayByBankDiscount" sort_order="500"/>
+        </group>
+    </section>
+    <section name="order_invoice">
+        <group name="totals">
+            <item name="briizpay_saving" instance="BriizPay\PayByBank\Model\Total\Invoice\PayByBankDiscount" sort_order="300"/>
+        </group>
+    </section>
+    <section name="order_creditmemo">
+        <group name="totals">
+            <item name="briizpay_saving" instance="BriizPay\PayByBank\Model\Total\Creditmemo\PayByBankDiscount" sort_order="350"/>
+        </group>
+    </section>
+</config>

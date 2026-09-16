@@ -1,6 +1,7 @@
 <?php
 /**
- * The parts that need no Magento: the signature contract and pence conversion.
+ * The parts that need no Magento: the signature contract, pence conversion,
+ * the receipt lines and the pay by bank discount's arithmetic.
  *
  * Run: php Test/run.php
  *
@@ -9,13 +10,18 @@
  * secret and timestamp, and pasted here. If either side ever changes how it
  * signs, this fails, instead of every store silently rejecting every payment
  * notification.
+ *
+ * The discount cases are the WooCommerce plugin's tests/test-discount.php, case
+ * for case, so both plugins give a merchant's customers the same saving.
  */
 declare(strict_types=1);
 
 require __DIR__ . '/../Model/Signature.php';
 require __DIR__ . '/../Model/Money.php';
 require __DIR__ . '/../Model/LineItems.php';
+require __DIR__ . '/../Model/Discount.php';
 
+use BriizPay\PayByBank\Model\Discount;
 use BriizPay\PayByBank\Model\LineItems;
 use BriizPay\PayByBank\Model\Money;
 use BriizPay\PayByBank\Model\Signature;
@@ -37,6 +43,8 @@ $credit = LineItems::build([$mugs, $ship, ['name' => 'Store credit', 'quantity' 
 $gift = LineItems::build([$mugs, $ship], 1000);
 $extra = LineItems::build([$mugs, $ship], 3250);
 $many = LineItems::build(array_fill(0, 150, ['name' => 'Pin', 'quantity' => 1, 'gross' => 2, 'taxRateBps' => 0]), 299);
+$bankRows = LineItems::reductionRows([Discount::LABEL => '-0.3000', 'Gift card' => null, 'Store credit' => '0.0000']);
+$banked = LineItems::build(array_merge([$mugs, $ship], $bankRows), 2970);
 $linesTotal = static fn (array $lines): int => array_sum(array_map(static fn ($l) => (int) round($l['quantity'] * $l['unitPriceMinor']), $lines));
 $last = static fn (array $lines): string => end($lines)['name'] . '@' . end($lines)['unitPriceMinor'];
 
@@ -75,6 +83,33 @@ $checks = [
     'a long order still adds up' => [$linesTotal($many), 299],
     'names lose markup and entities' => [LineItems::build([['name' => '<b>Fish &amp; chips</b>', 'quantity' => 1, 'gross' => 850, 'taxRateBps' => 0]], 850)[0]['name'], 'Fish & chips'],
     'shipping VAT is worked back from its tax' => [LineItems::rateBps(600, 100), 2000],
+    'the pay by bank discount is a line of its own' => [$last($banked), 'Pay by bank discount@-30'],
+    'a discount line leaves nothing to balance' => [count($banked), 3],
+    'a discount line keeps the lines on the total' => [$linesTotal($banked), 2970],
+    'unset and zero reductions send no line' => [count($bankRows), 1],
+    'a reduction stored positive is still taken off' => [LineItems::reductionRows(['Gift card' => 5])[0]['gross'], -500],
+
+    // Discount::compute(), the cases of the WooCommerce plugin's tests/test-discount.php.
+    'discount: one percent of a round basket' => [Discount::compute(100.00, 'percent', 1), 1.00],
+    'discount: one percent rounds to the penny' => [Discount::compute(45.99, 'percent', 1), 0.46],
+    'discount: half a percent on a small basket' => [Discount::compute(12.34, 'percent', 0.5), 0.06],
+    'discount: a fixed amount is taken as pounds' => [Discount::compute(100.00, 'fixed', 1), 1.00],
+    'discount: a fixed amount never exceeds the basket' => [Discount::compute(0.50, 'fixed', 5), 0.50],
+    'discount: one hundred percent is the whole basket' => [Discount::compute(80.00, 'percent', 100), 80.00],
+    'discount: nothing off when the amount is zero' => [Discount::compute(100.00, 'percent', 0), 0.0],
+    'discount: nothing off a negative amount' => [Discount::compute(100.00, 'percent', -3), 0.0],
+    'discount: nothing off an empty basket' => [Discount::compute(0, 'percent', 1), 0.0],
+    'discount: strings from the config table work' => [Discount::compute('60.00', 'percent', '2.5'), 1.50],
+    'discount: an unknown type is treated as percent' => [Discount::compute(100.00, 'bogus', 1), 1.00],
+    'discount: currency precision is honoured' => [Discount::compute(45.99, 'percent', 1, 0), 0.0],
+
+    // Discount::share(), for invoices and credit memos.
+    'share: a whole-order document takes it all' => [Discount::share(1.20, 0.0, true, 120.00, 120.00), 1.20],
+    'share: half the items take half' => [Discount::share(1.20, 0.0, false, 60.00, 120.00), 0.60],
+    'share: the last document takes what is left' => [Discount::share(1.00, 0.33, true, 40.00, 120.00), 0.67],
+    'share: never more than is left' => [Discount::share(1.00, 0.90, false, 60.00, 120.00), 0.10],
+    'share: nothing once it is all taken' => [Discount::share(1.00, 1.00, true, 60.00, 120.00), 0.0],
+    'share: a document with no items takes none' => [Discount::share(1.00, 0.0, false, 0.0, 120.00), 0.0],
 ];
 
 $failed = 0;

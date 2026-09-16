@@ -10,5 +10,35 @@
         "constraint": {
             "PRIMARY": true
         }
+    },
+    "quote": {
+        "column": {
+            "briizpay_discount_amount": true,
+            "base_briizpay_discount_amount": true
+        }
+    },
+    "quote_address": {
+        "column": {
+            "briizpay_discount_amount": true,
+            "base_briizpay_discount_amount": true
+        }
+    },
+    "sales_order": {
+        "column": {
+            "briizpay_discount_amount": true,
+            "base_briizpay_discount_amount": true
+        }
+    },
+    "sales_invoice": {
+        "column": {
+            "briizpay_discount_amount": true,
+            "base_briizpay_discount_amount": true
+        }
+    },
+    "sales_creditmemo": {
+        "column": {
+            "briizpay_discount_amount": true,
+            "base_briizpay_discount_amount": true
+        }
     }
 }

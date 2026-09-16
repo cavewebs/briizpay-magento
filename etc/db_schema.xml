@@ -10,4 +10,29 @@
             <column name="created_at"/>
         </index>
     </table>
+
+    <!-- The pay by bank discount, negative like discount_amount, in the order
+         currency and the base currency. On quote_address because the checkout's
+         totals are read back from the address's saved data; on each sales
+         document so it is shown, invoiced and refunded as it was given. -->
+    <table name="quote" resource="checkout">
+        <column xsi:type="decimal" name="briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount"/>
+        <column xsi:type="decimal" name="base_briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount in base currency"/>
+    </table>
+    <table name="quote_address" resource="checkout">
+        <column xsi:type="decimal" name="briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount"/>
+        <column xsi:type="decimal" name="base_briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount in base currency"/>
+    </table>
+    <table name="sales_order" resource="sales">
+        <column xsi:type="decimal" name="briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount"/>
+        <column xsi:type="decimal" name="base_briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount in base currency"/>
+    </table>
+    <table name="sales_invoice" resource="sales">
+        <column xsi:type="decimal" name="briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount"/>
+        <column xsi:type="decimal" name="base_briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount in base currency"/>
+    </table>
+    <table name="sales_creditmemo" resource="sales">
+        <column xsi:type="decimal" name="briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount"/>
+        <column xsi:type="decimal" name="base_briizpay_discount_amount" scale="4" precision="20" unsigned="false" nullable="true" default="0" comment="Pay by bank discount in base currency"/>
+    </table>
 </schema>

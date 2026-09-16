@@ -68,21 +68,39 @@ class LineItems
             ];
         }
 
-        // Adobe Commerce takes gift cards, store credit and reward points off
-        // the grand total without an order line. Named here so the receipt says
-        // what they were; on Magento Open Source these are never set.
-        foreach ([
-            'gift_cards_amount' => 'Gift card',
-            'customer_balance_amount' => 'Store credit',
-            'reward_currency_amount' => 'Reward points',
-        ] as $field => $label) {
-            $amount = Money::toMinor(abs((float) $order->getData($field)));
-            if ($amount > 0) {
-                $rows[] = ['name' => (string) __($label), 'quantity' => 1, 'gross' => -$amount, 'taxRateBps' => 0, 'sku' => ''];
-            }
-        }
+        // The pay by bank discount is its own line, as it is at checkout, so
+        // the receipt shows the saving by name instead of folding it into
+        // "Other discounts". Adobe Commerce takes gift cards, store credit and
+        // reward points off the grand total without an order line either;
+        // named here so the receipt says what they were. On Magento Open
+        // Source those three are never set.
+        $rows = array_merge($rows, self::reductionRows([
+            Discount::LABEL => $order->getData(Discount::FIELD),
+            'Gift card' => $order->getData('gift_cards_amount'),
+            'Store credit' => $order->getData('customer_balance_amount'),
+            'Reward points' => $order->getData('reward_currency_amount'),
+        ]));
 
         return self::build($rows, Money::toMinor($order->getGrandTotal()));
+    }
+
+    /**
+     * Rows for amounts taken off the order total, each named, whichever sign
+     * the amount is stored with. Nothing for an amount that rounds to no pence.
+     *
+     * @param array<string, float|int|string|null> $amounts label => pounds
+     * @return list<array{name: string, quantity: int, gross: int, taxRateBps: int, sku: string}>
+     */
+    public static function reductionRows(array $amounts): array
+    {
+        $rows = [];
+        foreach ($amounts as $label => $value) {
+            $amount = Money::toMinor(abs((float) $value));
+            if ($amount > 0) {
+                $rows[] = ['name' => self::label((string) $label), 'quantity' => 1, 'gross' => -$amount, 'taxRateBps' => 0, 'sku' => ''];
+            }
+        }
+        return $rows;
     }
 
     /**

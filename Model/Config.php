@@ -56,6 +56,33 @@ class Config
         return str_starts_with($this->getApiKey($storeId), 'bzp_sk_test_');
     }
 
+    /**
+     * The pay by bank discount is on, for a method that is on.
+     *
+     * A discount for a method the customer cannot choose would never be
+     * applied anyway, but checking here keeps a disabled method from costing
+     * the collector anything on every basket.
+     */
+    public function isDiscountOffered(?int $storeId = null): bool
+    {
+        return $this->isActive($storeId)
+            && $this->scopeConfig->isSetFlag(self::PATH . 'discount_enabled', ScopeInterface::SCOPE_STORE, $storeId)
+            && $this->getDiscountAmount($storeId) > 0;
+    }
+
+    /** 'percent' or 'fixed'. Anything else is read as a percentage, as Discount::compute() does. */
+    public function getDiscountType(?int $storeId = null): string
+    {
+        $type = (string) $this->scopeConfig->getValue(self::PATH . 'discount_type', ScopeInterface::SCOPE_STORE, $storeId);
+        return $type === Discount::TYPE_FIXED ? Discount::TYPE_FIXED : Discount::TYPE_PERCENT;
+    }
+
+    /** Percent, or pounds for a fixed discount. Never negative. */
+    public function getDiscountAmount(?int $storeId = null): float
+    {
+        return max(0.0, (float) $this->scopeConfig->getValue(self::PATH . 'discount_amount', ScopeInterface::SCOPE_STORE, $storeId));
+    }
+
     /** Where BriizPay sends payment notifications for this store. */
     public function getWebhookUrl(): string
     {
