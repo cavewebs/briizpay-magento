@@ -29,6 +29,27 @@
                     <label>Webhook URL</label>
                     <frontend_model>BriizPay\PayByBank\Block\Adminhtml\System\Config\WebhookUrl</frontend_model>
                 </field>
+                <field id="discount_enabled" translate="label comment" type="select" sortOrder="56" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Offer a discount for paying by bank</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>A saving the customer can see is the reason to choose their bank over a card. It shows as its own line, Pay by bank discount, once they choose this method, and comes off again if they choose another.</comment>
+                </field>
+                <field id="discount_type" translate="label" type="select" sortOrder="57" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Discount type</label>
+                    <source_model>BriizPay\PayByBank\Model\Config\Source\DiscountType</source_model>
+                    <depends>
+                        <field id="discount_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="discount_amount" translate="label comment" type="text" sortOrder="58" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Discount amount</label>
+                    <backend_model>BriizPay\PayByBank\Model\Config\Backend\DiscountAmount</backend_model>
+                    <frontend_class>validate-zero-or-greater</frontend_class>
+                    <comment>As a percentage, 1 means 1% off. As a fixed amount, 1 means £1.00 off. Applied to the items total after coupons, with tax, before shipping, and never more than the items themselves.</comment>
+                    <depends>
+                        <field id="discount_enabled">1</field>
+                    </depends>
+                </field>
                 <field id="allowspecific" translate="label" type="allowspecific" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Payment from applicable countries</label>
                     <source_model>Magento\Payment\Model\Config\Source\Allspecificcountries</source_model>

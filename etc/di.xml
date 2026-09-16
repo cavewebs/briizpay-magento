@@ -56,4 +56,15 @@
             </argument>
         </arguments>
     </virtualType>
+
+    <!-- The pay by bank discount can only reach an order its method earns it on:
+         see the plugin for why this is checked at submit and not trusted to the
+         checkout. -->
+    <type name="Magento\Quote\Model\QuoteManagement">
+        <plugin name="briizpay_recollect_stale_discount" type="BriizPay\PayByBank\Plugin\Quote\RecollectStaleDiscount"/>
+    </type>
+
+    <type name="Magento\Quote\Api\CartTotalRepositoryInterface">
+        <plugin name="briizpay_add_discount_offer" type="BriizPay\PayByBank\Plugin\Quote\AddDiscountOffer"/>
+    </type>
 </config>

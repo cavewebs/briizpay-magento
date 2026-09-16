@@ -1,0 +1,10 @@
+<!-- ko if: isDisplayed() -->
+<tr class="totals discount briizpay-discount">
+    <th class="mark" scope="row">
+        <span class="title" data-bind="text: getTitle()"></span>
+    </th>
+    <td class="amount">
+        <span class="price" data-bind="text: getValue(), attr: {'data-th': getTitle()}"></span>
+    </td>
+</tr>
+<!-- /ko -->

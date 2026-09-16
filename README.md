@@ -18,8 +18,8 @@ checkout, PHP 8.1 to 8.4. Orders in pounds only.
    a second click. The pay link is stored on the order, so a reload reuses it.
    The order's lines go with it (each item after its discount and with its tax,
    and shipping), so the customer's receipt lists what they bought. Adobe
-   Commerce gift cards, store credit and reward points are lines of their own.
-   Any other difference from the grand total is sent as a Rounding, Other
+   Commerce gift cards, store credit and reward points, and the pay by bank
+   discount, are lines of their own. Any other difference from the grand total is sent as a Rounding, Other
    discounts or Other charges line, so the lines always add up to the charge.
 3. **Paid.** BriizPay sends a signed `payment_request.paid` webhook to
    `/briizpay/webhook`. The module checks the signature, the amount and that the
@@ -33,20 +33,54 @@ checkout, PHP 8.1 to 8.4. Orders in pounds only.
 Whichever of the webhook and the return page arrives first completes the order;
 the other finds it already invoiced and does nothing.
 
+**Pay by bank discount.** Optional, and off until turned on. A percentage or a
+fixed amount off for customers who pay by bank, worked out on the items after
+coupons, with their tax, without shipping, never more than the items and
+rounded to the penny: the same discount the WooCommerce plugin gives. The
+method's name at checkout says what it saves ("BriizPay - Pay by bank and save
+£1.20"). Choosing the method puts a *Pay by bank discount* line in the order
+summary straight away, and choosing another method takes it off again. The line
+is not taxable and stays with the order: on the order, invoice and credit memo
+in the admin, in the customer's account, in the order emails and the PDFs, and
+on the customer's BriizPay receipt. The amount charged is the discounted total.
+
+The discount is decided on the server from the method the order is actually
+placed with, never from what the checkout showed. Just before any basket becomes
+an order, a basket whose discount does not match its payment method has its
+totals worked out again, and an order paid any other way that still carries the
+discount is refused. So choosing pay by bank, seeing the saving and then placing
+the order with another method gets the full price.
+
 **Cancelling.** When a BriizPay order is cancelled, by an admin, the return page
 or Magento's Pending Payment Order Lifetime cleanup, the module cancels the pay
 link on BriizPay so it cannot be paid later.
 
 ## Install
 
-Copy the module into `app/code/BriizPay/PayByBank`, then:
+With Composer, from the Magento root:
 
 ```bash
+composer require briizpay/module-paybybank
 bin/magento module:enable BriizPay_PayByBank
 bin/magento setup:upgrade
 bin/magento setup:di:compile
+bin/magento setup:static-content:deploy en_GB
 bin/magento cache:flush
 ```
+
+Or without Composer, unzip the release into `app/code/BriizPay/PayByBank` so
+that `registration.php` sits directly in that folder, and run the same
+`bin/magento` commands. `setup:di:compile` and `setup:static-content:deploy`
+are needed in production mode; without the static content deploy the checkout
+has no script for the payment method and it does not appear.
+
+Update with `composer update briizpay/module-paybybank` and the same commands.
+
+## Releasing
+
+Packagist reads the version from git tags. `composer.json` also carries
+`version`, because the Adobe Commerce Marketplace requires it, so the two must
+agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
 
 ## Configure
 
@@ -56,6 +90,8 @@ bin/magento cache:flush
 2. In Magento admin: **Stores, Configuration, Sales, Payment Methods, BriizPay -
    Pay by bank**. Set Enabled to Yes and paste the API key and the signing
    secret. Both are stored encrypted.
+3. Optionally, in the same place, set **Offer a discount for paying by bank** to
+   Yes and choose a percentage of the order or a fixed amount in pounds.
 
 A key beginning `bzp_sk_test_` uses the BriizPay test environment and moves no
 real money; `bzp_sk_live_` is live. The method is hidden at checkout until a key
@@ -63,7 +99,6 @@ of the right shape is saved, and for any currency other than GBP.
 
 ## What it does not do yet
 
-- The pay by bank discount the WooCommerce plugin offers.
 - Refunds from the Magento credit memo screen. Refund from the BriizPay dashboard.
 - Hyva or other non-Luma checkouts, which need their own payment renderer.
 
@@ -74,5 +109,6 @@ php Test/run.php
 ```
 
 Pins the webhook signature against a vector produced by the API's own signing
-code, pence conversion, and the receipt lines. The rest is exercised end to end against a Mage-OS
-testbed and the BriizPay test environment.
+code, pence conversion, the receipt lines, and the pay by bank discount's
+arithmetic, with the same cases as the WooCommerce plugin's tests. The rest is
+exercised end to end against a Mage-OS testbed and the BriizPay test environment.
