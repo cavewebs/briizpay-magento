@@ -57,14 +57,30 @@ link on BriizPay so it cannot be paid later.
 
 ## Install
 
-Copy the module into `app/code/BriizPay/PayByBank`, then:
+With Composer, from the Magento root:
 
 ```bash
+composer require briizpay/module-paybybank
 bin/magento module:enable BriizPay_PayByBank
 bin/magento setup:upgrade
 bin/magento setup:di:compile
+bin/magento setup:static-content:deploy en_GB
 bin/magento cache:flush
 ```
+
+Or without Composer, unzip the release into `app/code/BriizPay/PayByBank` so
+that `registration.php` sits directly in that folder, and run the same
+`bin/magento` commands. `setup:di:compile` and `setup:static-content:deploy`
+are needed in production mode; without the static content deploy the checkout
+has no script for the payment method and it does not appear.
+
+Update with `composer update briizpay/module-paybybank` and the same commands.
+
+## Releasing
+
+Packagist reads the version from git tags. `composer.json` also carries
+`version`, because the Adobe Commerce Marketplace requires it, so the two must
+agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
 
 ## Configure
 
