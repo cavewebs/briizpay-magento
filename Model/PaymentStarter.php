@@ -45,7 +45,7 @@ class PaymentStarter
         $billing = $order->getBillingAddress();
         $name = $billing ? trim($billing->getFirstname() . ' ' . $billing->getLastname()) : '';
 
-        $request = $this->client->createPaymentRequest([
+        $body = [
             'amountMinor' => Money::toMinor($order->getGrandTotal()),
             'currency' => (string) $order->getOrderCurrencyCode(),
             'externalReference' => (string) $order->getIncrementId(),
@@ -63,7 +63,16 @@ class PaymentStarter
                     'token' => $this->returnToken->for($order),
                 ],
             ]),
-        ], $storeId);
+        ];
+        // What was bought, for the customer's receipt. Left out when the lines
+        // do not add up to the grand total exactly, so the receipt falls back
+        // to the memo rather than the checkout failing.
+        $lines = LineItems::forOrder($order);
+        if ($lines !== null) {
+            $body['lineItems'] = $lines;
+        }
+
+        $request = $this->client->createPaymentRequest($body, $storeId);
 
         if (empty($request['id']) || empty($request['payUrl'])) {
             throw new Api\ApiException(__('BriizPay could not take this payment right now.'));

@@ -14,7 +14,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/../Model/Signature.php';
 require __DIR__ . '/../Model/Money.php';
+require __DIR__ . '/../Model/LineItems.php';
 
+use BriizPay\PayByBank\Model\LineItems;
 use BriizPay\PayByBank\Model\Money;
 use BriizPay\PayByBank\Model\Signature;
 
@@ -25,6 +27,11 @@ $apiSignature = '592875df2a153953302ece484ac453d51a911812257abdd457ff45ea580210f
 $header = "t={$timestamp},v1={$apiSignature}";
 
 $s = new Signature();
+
+$mugs = ['name' => 'Blue mug', 'quantity' => 2.0, 'gross' => 2500, 'taxRateBps' => 2000, 'sku' => 'MUG-1'];
+$ship = ['name' => 'Flat Rate - Fixed', 'quantity' => 1, 'gross' => 500, 'taxRateBps' => 0, 'sku' => ''];
+$basket = LineItems::build([$mugs, $ship], 3000);
+$split = LineItems::build([['name' => 'Tea', 'quantity' => 3.0, 'gross' => 1000, 'taxRateBps' => 0]], 1000);
 
 $checks = [
     'accepts the API-signed vector' => [$s->verify($body, $header, $secret, $timestamp), true],
@@ -42,6 +49,17 @@ $checks = [
     '"14.85" string is 1485 pence' => [Money::toMinor('14.85'), 1485],
     '0.1 + 0.2 rounds to 30 pence' => [Money::toMinor(0.1 + 0.2), 30],
     '1234.565 rounds half up to 123457' => [Money::toMinor('1234.565'), 123457],
+    'a line keeps its quantity and unit price' => [$basket[0]['quantity'] . '@' . $basket[0]['unitPriceMinor'], '2@1250'],
+    'the sku goes with the line' => [$basket[0]['sku'], 'MUG-1'],
+    'no sku key when there is none' => [isset($basket[1]['sku']), false],
+    'lines are tax inclusive at the item rate' => [$basket[0]['taxInclusive'] . '/' . $basket[0]['taxRateBps'], '1/2000'],
+    'shipping is a line of its own' => [$basket[1]['name'] . '@' . $basket[1]['unitPriceMinor'], 'Flat Rate - Fixed@500'],
+    'a row that will not divide is charged once' => [$split[0]['name'] . '|' . $split[0]['quantity'] . '@' . $split[0]['unitPriceMinor'], 'Tea × 3|1@1000'],
+    'a penny out sends no lines' => [LineItems::build([$mugs, $ship], 3001), null],
+    'no rows sends no lines' => [LineItems::build([], 0), null],
+    'over 100 lines sends none' => [LineItems::build(array_fill(0, 101, ['name' => 'Pin', 'quantity' => 1, 'gross' => 1, 'taxRateBps' => 0]), 101), null],
+    'names lose markup and entities' => [LineItems::build([['name' => '<b>Fish &amp; chips</b>', 'quantity' => 1, 'gross' => 850, 'taxRateBps' => 0]], 850)[0]['name'], 'Fish & chips'],
+    'shipping VAT is worked back from its tax' => [LineItems::rateBps(600, 100), 2000],
 ];
 
 $failed = 0;
