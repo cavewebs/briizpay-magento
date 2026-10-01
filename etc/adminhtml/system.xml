@@ -17,7 +17,7 @@
                     <label>Description</label>
                 </field>
                 <field id="show_logo" translate="label comment" type="select" sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Show the BriizPay logo at checkout</label>
+                    <label>Show bank logos at checkout</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Turn off if your theme already decorates payment methods.</comment>
                 </field>

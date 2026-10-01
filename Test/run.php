@@ -13,8 +13,9 @@
  *
  * The logo cases run the module's real Config and checkout ConfigProvider
  * against the small stand-ins for Magento's interfaces in MagentoStubs.php, and
- * read the shipped config.xml, system.xml and image, so the setting, its default
- * and the file cannot drift apart unnoticed.
+ * read the shipped config.xml, system.xml, images, template and stylesheet, so
+ * the setting, its default, the files and the decorative markup cannot drift
+ * apart unnoticed.
  *
  * The discount cases are the WooCommerce plugin's tests/test-discount.php, case
  * for case, so both plugins give a merchant's customers the same saving.
@@ -103,7 +104,8 @@ $moduleConfig = static function (ScopeConfigInterface $scopeConfig): Config {
     };
     return new Config($scopeConfig, $encryptor, $url);
 };
-$provider = static function (array $values, ?string $logoUrl) use ($scope, $moduleConfig, &$assetAsked): array {
+$provider = static function (array $values, ?string $logoBase, ?string $unresolvable = null) use ($scope, $moduleConfig, &$assetAsked): array {
+    $assetAsked = [];
     $scopeConfig = $scope($values);
     $url = new class implements UrlInterface {
         public function getUrl($routePath = null, $routeParams = null)
@@ -127,35 +129,40 @@ $provider = static function (array $values, ?string $logoUrl) use ($scope, $modu
             };
         }
     };
-    // A null address stands for an asset repository that cannot resolve the file.
-    $assets = new class ($logoUrl, $assetAsked) extends Repository {
-        public function __construct(private ?string $logoUrl, private &$asked)
+    // A null base stands for an asset repository that cannot resolve any file,
+    // and $unresolvable for one that cannot resolve a single file.
+    $assets = new class ($logoBase, $unresolvable, $assetAsked) extends Repository {
+        public function __construct(private ?string $logoBase, private ?string $unresolvable, private &$asked)
         {
         }
 
         public function getUrlWithParams($fileId, array $params)
         {
-            $this->asked = [$fileId, $params];
-            if ($this->logoUrl === null) {
+            $this->asked[] = [$fileId, $params];
+            if ($this->logoBase === null || $fileId === $this->unresolvable) {
                 throw new \RuntimeException('no such file');
             }
-            return $this->logoUrl;
+            return $this->logoBase . substr($fileId, strpos($fileId, '::') + 2);
         }
     };
     return (new ConfigProvider($scopeConfig, $url, $moduleConfig($scopeConfig), $stores, $assets))
         ->getConfig()['payment']['briizpay'];
 };
-$logoUrl = 'https://shop.test/static/version1/frontend/Magento/luma/en_GB/BriizPay_PayByBank/images/briizpay-logo.png';
-$logoOn = $provider(['payment/briizpay/show_logo' => '1', 'payment/briizpay/description' => 'Pay from your bank'], $logoUrl);
+$logoBase = 'https://shop.test/static/version1/frontend/Magento/luma/en_GB/BriizPay_PayByBank/';
+$banks = ['barclays', 'hsbc', 'natwest', 'monzo'];
+$bankUrls = array_map(static fn (string $bank): string => $logoBase . 'images/banks/' . $bank . '.png', $banks);
+$bankAssets = array_map(static fn (string $bank): string => 'BriizPay_PayByBank::images/banks/' . $bank . '.png', $banks);
+$logoOn = $provider(['payment/briizpay/show_logo' => '1', 'payment/briizpay/description' => 'Pay from your bank'], $logoBase);
 $logoAsked = $assetAsked;
-$logoOff = $provider(['payment/briizpay/show_logo' => '0'], $logoUrl);
+$logoOff = $provider(['payment/briizpay/show_logo' => '0'], $logoBase);
 $logoLost = $provider(['payment/briizpay/show_logo' => '1'], null);
+$logoOneLost = $provider(['payment/briizpay/show_logo' => '1'], $logoBase, $bankAssets[1]);
 $withDiscount = $provider([
     'payment/briizpay/show_logo' => '1',
     'payment/briizpay/active' => '1',
     'payment/briizpay/discount_enabled' => '1',
     'payment/briizpay/discount_amount' => '2',
-], $logoUrl);
+], $logoBase);
 $flagOn = $moduleConfig($scope(['payment/briizpay/show_logo' => '1']))->showLogo(3);
 $flagOff = $moduleConfig($scope(['payment/briizpay/show_logo' => '0']))->showLogo(3);
 $flagUnset = $moduleConfig($scope([]))->showLogo();
@@ -163,7 +170,12 @@ $moduleConfig($scope(['payment/briizpay/show_logo' => '1']))->showLogo(7);
 $shipped = simplexml_load_file(__DIR__ . '/../etc/config.xml')->default->payment->briizpay;
 $adminField = simplexml_load_file(__DIR__ . '/../etc/adminhtml/system.xml')
     ->xpath('//group[@id="briizpay"]/field[@id="show_logo"]')[0] ?? null;
-$image = getimagesize(__DIR__ . '/../view/frontend/web/images/briizpay-logo.png');
+$images = array_map(static function (string $bank): array {
+    $size = getimagesize(__DIR__ . '/../view/frontend/web/images/banks/' . $bank . '.png') ?: [];
+    return [$size[0] ?? 0, $size[1] ?? 0, $size['mime'] ?? ''];
+}, $banks);
+$template = (string) file_get_contents(__DIR__ . '/../view/frontend/web/template/payment/briizpay.html');
+$css = (string) file_get_contents(__DIR__ . '/../view/frontend/web/css/briizpay.css');
 
 $checks = [
     'accepts the API-signed vector' => [$s->verify($body, $header, $secret, $timestamp), true],
@@ -234,24 +246,36 @@ $checks = [
             (string) $adminField->comment,
         ],
         [
-            'Show the BriizPay logo at checkout',
+            'Show bank logos at checkout',
             'Magento\Config\Model\Config\Source\Yesno',
             '1',
             'Turn off if your theme already decorates payment methods.',
         ],
     ],
-    'logo: the checkout is told to show it' => [$logoOn['showLogo'], true],
-    'logo: the checkout is given the asset address' => [$logoOn['logoUrl'], $logoUrl],
-    'logo: the asset is the module image, asked for securely' => [
+    'logo: the checkout is told to show them' => [$logoOn['showLogo'], true],
+    'logo: the checkout is given the four bank addresses, in order' => [$logoOn['logoUrls'], $bankUrls],
+    'logo: the assets are the module images, asked for securely' => [
         $logoAsked,
-        ['BriizPay_PayByBank::images/briizpay-logo.png', ['_secure' => true]],
+        array_map(static fn (string $asset): array => [$asset, ['_secure' => true]], $bankAssets),
     ],
-    'logo: turned off, the checkout is told not to show it' => [$logoOff['showLogo'], false],
-    'logo: an asset that cannot be resolved gives an empty address, not an error' => [$logoLost['logoUrl'], ''],
+    'logo: turned off, the checkout is told not to show them' => [$logoOff['showLogo'], false],
+    'logo: assets that cannot be resolved give an empty list, not an error' => [$logoLost['logoUrls'], []],
+    'logo: one asset that cannot be resolved is left out alone' => [
+        $logoOneLost['logoUrls'],
+        [$bankUrls[0], $bankUrls[2], $bankUrls[3]],
+    ],
     'logo: the description is still given' => [$logoOn['description'], 'Pay from your bank'],
     'logo: the redirect address is still given' => [$logoOn['redirectUrl'], 'https://shop.test/briizpay/checkout/redirect'],
     'logo: the pay by bank offer flag is untouched' => [[$logoOff['discountOffered'], $withDiscount['discountOffered']], [false, true]],
-    'logo: the shipped image is 194x48, twice its 24px display height' => [[$image[0] ?? 0, $image[1] ?? 0, $image['mime'] ?? ''], [194, 48, 'image/png']],
+    'logo: the shipped images are four 40px squares, twice their 20px display size' => [$images, array_fill(0, 4, [40, 40, 'image/png'])],
+    'logo: the old wordmark is not shipped' => [file_exists(__DIR__ . '/../view/frontend/web/images/briizpay-logo.png'), false],
+    'logo: every image is decorative, with an empty alt' => [substr_count($template, 'alt=""'), 1],
+    'logo: no image in the template has alt text' => [preg_match('/alt="[^"]/', $template), 0],
+    'logo: the row is hidden from assistive technology' => [str_contains($template, 'class="briizpay-logos" aria-hidden="true"'), true],
+    'logo: the icons are 20px with 4px rounded corners and a 4px gap' => [
+        [str_contains($css, 'height: 20px;'), str_contains($css, 'width: 20px;'), str_contains($css, 'border-radius: 4px;'), str_contains($css, 'gap: 4px;')],
+        [true, true, true, true],
+    ],
 
     // Discount::share(), for invoices and credit memos.
     'share: a whole-order document takes it all' => [Discount::share(1.20, 0.0, true, 120.00, 120.00), 1.20],

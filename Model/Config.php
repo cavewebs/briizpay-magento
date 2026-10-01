@@ -35,10 +35,12 @@ class Config
     }
 
     /**
-     * Show the BriizPay logo beside the method's name at checkout.
+     * Show the bank logos beside the method's name at checkout.
      *
-     * Store scoped, like the title it sits beside, so a multi-store merchant
-     * can drop it on a storefront whose theme already decorates methods.
+     * Store scoped, like the title they sit beside, so a multi-store merchant
+     * can drop them on a storefront whose theme already decorates methods. The
+     * config path stays show_logo so a store that set it for the single logo
+     * keeps its choice.
      */
     public function showLogo(?int $storeId = null): bool
     {

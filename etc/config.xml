@@ -10,7 +10,9 @@
                 <title>BriizPay - Pay by bank</title>
                 <description>Pay straight from your banking app. No card details needed.</description>
                 <!-- On by default: other methods show their logo at checkout and a
-                     plain text name looks less trustworthy beside them. -->
+                     plain text name looks less trustworthy beside them. The key
+                     is show_logo from when this was a single logo, so a store
+                     that set it keeps its choice. -->
                 <show_logo>1</show_logo>
                 <api_key backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
                 <webhook_secret backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>

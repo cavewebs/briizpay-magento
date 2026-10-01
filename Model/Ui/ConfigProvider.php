@@ -13,13 +13,23 @@ use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * What the checkout's JavaScript needs: the line under the method name, the
- * logo beside it, where to go once the order is placed, and whether choosing
+ * bank logos beside it, where to go once the order is placed, and whether choosing
  * the method changes the price.
  */
 class ConfigProvider implements ConfigProviderInterface
 {
-    /** Where the bundled logo lives, in the module's own static files. */
-    public const LOGO_ASSET = 'BriizPay_PayByBank::images/briizpay-logo.png';
+    /**
+     * The bundled bank logos, in the module's own static files and in the order
+     * they are shown. Each is a 40px square, twice the 20px it is displayed at.
+     * They are trademarks of their owners, shown only to indicate that the
+     * customer pays from their own bank.
+     */
+    public const LOGO_ASSETS = [
+        'BriizPay_PayByBank::images/banks/barclays.png',
+        'BriizPay_PayByBank::images/banks/hsbc.png',
+        'BriizPay_PayByBank::images/banks/natwest.png',
+        'BriizPay_PayByBank::images/banks/monzo.png',
+    ];
 
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig,
@@ -43,7 +53,7 @@ class ConfigProvider implements ConfigProviderInterface
                         ScopeInterface::SCOPE_STORE
                     ),
                     'showLogo' => $this->config->showLogo($storeId),
-                    'logoUrl' => $this->getLogoUrl(),
+                    'logoUrls' => $this->getLogoUrls(),
                     'redirectUrl' => $this->url->getUrl('briizpay/checkout/redirect', ['_secure' => true]),
                     // Only when this is on does the checkout ask for new totals
                     // as the customer moves between methods.
@@ -54,18 +64,26 @@ class ConfigProvider implements ConfigProviderInterface
     }
 
     /**
-     * The logo's address through Magento's static files, so it follows the
+     * The logos' addresses through Magento's static files, so they follow the
      * theme's deployed path, version and CDN.
      *
-     * Empty when it cannot be worked out: the checkout then shows the name on
-     * its own, which is better than failing the page over a picture.
+     * A logo that cannot be resolved is left out on its own, and none at all
+     * leaves an empty list: the checkout then shows the name on its own, which
+     * is better than failing the page over a picture.
+     *
+     * @return string[]
      */
-    private function getLogoUrl(): string
+    private function getLogoUrls(): array
     {
-        try {
-            return $this->assets->getUrlWithParams(self::LOGO_ASSET, ['_secure' => true]);
-        } catch (\Throwable) {
-            return '';
+        $urls = [];
+        foreach (self::LOGO_ASSETS as $asset) {
+            try {
+                $urls[] = $this->assets->getUrlWithParams($asset, ['_secure' => true]);
+            } catch (\Throwable) {
+                continue;
+            }
         }
+
+        return $urls;
     }
 }
