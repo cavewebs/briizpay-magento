@@ -1,0 +1,12 @@
+/* The BriizPay logo beside the method's name at checkout. The file is 2x
+   (194x48), so it is held to 24px tall to stay sharp on high density screens
+   and no taller than the label's text line. */
+.payment-method-title .briizpay-logo {
+    display: inline-block;
+    height: auto;
+    margin-left: 8px;
+    max-height: 24px;
+    max-width: 100%;
+    vertical-align: middle;
+    width: auto;
+}

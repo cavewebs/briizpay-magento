@@ -34,6 +34,17 @@ class Config
         return $this->scopeConfig->isSetFlag(self::PATH . 'active', ScopeInterface::SCOPE_STORE, $storeId);
     }
 
+    /**
+     * Show the BriizPay logo beside the method's name at checkout.
+     *
+     * Store scoped, like the title it sits beside, so a multi-store merchant
+     * can drop it on a storefront whose theme already decorates methods.
+     */
+    public function showLogo(?int $storeId = null): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::PATH . 'show_logo', ScopeInterface::SCOPE_STORE, $storeId);
+    }
+
     public function getApiKey(?int $storeId = null): string
     {
         return $this->secret('api_key', 'bzp_sk_', $storeId);

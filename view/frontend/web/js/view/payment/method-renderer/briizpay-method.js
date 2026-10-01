@@ -80,6 +80,13 @@ define([
             return this.getConfig().description || '';
         },
 
+        /** @return {String} the logo's address, or '' when it is turned off or missing */
+        getLogoUrl: function () {
+            var config = this.getConfig();
+
+            return config.showLogo ? config.logoUrl || '' : '';
+        },
+
         /** "BriizPay - Pay by bank and save £1.20", while there is a saving to name. */
         getTitle: function () {
             var title = this._super(),
