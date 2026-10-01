@@ -11,6 +11,12 @@
  * signs, this fails, instead of every store silently rejecting every payment
  * notification.
  *
+ * The logo cases run the module's real Config and checkout ConfigProvider
+ * against the small stand-ins for Magento's interfaces in MagentoStubs.php, and
+ * read the shipped config.xml, system.xml, images, template and stylesheet, so
+ * the setting, its default, the files and the decorative markup cannot drift
+ * apart unnoticed.
+ *
  * The discount cases are the WooCommerce plugin's tests/test-discount.php, case
  * for case, so both plugins give a merchant's customers the same saving.
  */
@@ -20,11 +26,21 @@ require __DIR__ . '/../Model/Signature.php';
 require __DIR__ . '/../Model/Money.php';
 require __DIR__ . '/../Model/LineItems.php';
 require __DIR__ . '/../Model/Discount.php';
+require __DIR__ . '/MagentoStubs.php';
+require __DIR__ . '/../Model/Config.php';
+require __DIR__ . '/../Model/Ui/ConfigProvider.php';
 
+use BriizPay\PayByBank\Model\Config;
 use BriizPay\PayByBank\Model\Discount;
 use BriizPay\PayByBank\Model\LineItems;
 use BriizPay\PayByBank\Model\Money;
 use BriizPay\PayByBank\Model\Signature;
+use BriizPay\PayByBank\Model\Ui\ConfigProvider;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\View\Asset\Repository;
+use Magento\Store\Model\StoreManagerInterface;
 
 $secret = 'whsec_' . str_repeat('a', 64);
 $timestamp = 1788780000;
@@ -47,6 +63,119 @@ $bankRows = LineItems::reductionRows([Discount::LABEL => '-0.3000', 'Gift card' 
 $banked = LineItems::build(array_merge([$mugs, $ship], $bankRows), 2970);
 $linesTotal = static fn (array $lines): int => array_sum(array_map(static fn ($l) => (int) round($l['quantity'] * $l['unitPriceMinor']), $lines));
 $last = static fn (array $lines): string => end($lines)['name'] . '@' . end($lines)['unitPriceMinor'];
+
+// A config store keyed by path, recording the store id each flag was read for.
+$scope = static function (array $values) use (&$readFor): ScopeConfigInterface {
+    $readFor = [];
+    return new class ($values, $readFor) implements ScopeConfigInterface {
+        public function __construct(private array $values, private array &$readFor)
+        {
+        }
+
+        public function getValue($path, $scopeType = 'default', $scopeCode = null)
+        {
+            return $this->values[$path] ?? null;
+        }
+
+        public function isSetFlag($path, $scopeType = 'default', $scopeCode = null)
+        {
+            $this->readFor[$path] = $scopeCode;
+            return (bool) ($this->values[$path] ?? false);
+        }
+    };
+};
+$moduleConfig = static function (ScopeConfigInterface $scopeConfig): Config {
+    $encryptor = new class implements EncryptorInterface {
+        public function decrypt($data)
+        {
+            return $data;
+        }
+    };
+    $url = new class implements UrlInterface {
+        public function getUrl($routePath = null, $routeParams = null)
+        {
+            return 'https://shop.test/' . $routePath;
+        }
+
+        public function getBaseUrl($params = [])
+        {
+            return 'https://shop.test/';
+        }
+    };
+    return new Config($scopeConfig, $encryptor, $url);
+};
+$provider = static function (array $values, ?string $logoBase, ?string $unresolvable = null) use ($scope, $moduleConfig, &$assetAsked): array {
+    $assetAsked = [];
+    $scopeConfig = $scope($values);
+    $url = new class implements UrlInterface {
+        public function getUrl($routePath = null, $routeParams = null)
+        {
+            return 'https://shop.test/' . $routePath;
+        }
+
+        public function getBaseUrl($params = [])
+        {
+            return 'https://shop.test/';
+        }
+    };
+    $stores = new class implements StoreManagerInterface {
+        public function getStore($storeId = null)
+        {
+            return new class {
+                public function getId()
+                {
+                    return 3;
+                }
+            };
+        }
+    };
+    // A null base stands for an asset repository that cannot resolve any file,
+    // and $unresolvable for one that cannot resolve a single file.
+    $assets = new class ($logoBase, $unresolvable, $assetAsked) extends Repository {
+        public function __construct(private ?string $logoBase, private ?string $unresolvable, private &$asked)
+        {
+        }
+
+        public function getUrlWithParams($fileId, array $params)
+        {
+            $this->asked[] = [$fileId, $params];
+            if ($this->logoBase === null || $fileId === $this->unresolvable) {
+                throw new \RuntimeException('no such file');
+            }
+            return $this->logoBase . substr($fileId, strpos($fileId, '::') + 2);
+        }
+    };
+    return (new ConfigProvider($scopeConfig, $url, $moduleConfig($scopeConfig), $stores, $assets))
+        ->getConfig()['payment']['briizpay'];
+};
+$logoBase = 'https://shop.test/static/version1/frontend/Magento/luma/en_GB/BriizPay_PayByBank/';
+$banks = ['barclays', 'hsbc', 'natwest', 'monzo'];
+$bankUrls = array_map(static fn (string $bank): string => $logoBase . 'images/banks/' . $bank . '.png', $banks);
+$bankAssets = array_map(static fn (string $bank): string => 'BriizPay_PayByBank::images/banks/' . $bank . '.png', $banks);
+$logoOn = $provider(['payment/briizpay/show_logo' => '1', 'payment/briizpay/description' => 'Pay from your bank'], $logoBase);
+$logoAsked = $assetAsked;
+$logoOff = $provider(['payment/briizpay/show_logo' => '0'], $logoBase);
+$logoLost = $provider(['payment/briizpay/show_logo' => '1'], null);
+$logoOneLost = $provider(['payment/briizpay/show_logo' => '1'], $logoBase, $bankAssets[1]);
+$withDiscount = $provider([
+    'payment/briizpay/show_logo' => '1',
+    'payment/briizpay/active' => '1',
+    'payment/briizpay/discount_enabled' => '1',
+    'payment/briizpay/discount_amount' => '2',
+], $logoBase);
+$flagOn = $moduleConfig($scope(['payment/briizpay/show_logo' => '1']))->showLogo(3);
+$flagOff = $moduleConfig($scope(['payment/briizpay/show_logo' => '0']))->showLogo(3);
+$flagUnset = $moduleConfig($scope([]))->showLogo();
+$moduleConfig($scope(['payment/briizpay/show_logo' => '1']))->showLogo(7);
+$shipped = simplexml_load_file(__DIR__ . '/../etc/config.xml')->default->payment->briizpay;
+$adminField = simplexml_load_file(__DIR__ . '/../etc/adminhtml/system.xml')
+    ->xpath('//group[@id="briizpay"]/field[@id="show_logo"]')[0] ?? null;
+$images = array_map(static function (string $bank): array {
+    $size = getimagesize(__DIR__ . '/../view/frontend/web/images/banks/' . $bank . '.png') ?: [];
+    return [$size[0] ?? 0, $size[1] ?? 0, $size['mime'] ?? ''];
+}, $banks);
+$template = (string) file_get_contents(__DIR__ . '/../view/frontend/web/template/payment/briizpay.html');
+$css = (string) file_get_contents(__DIR__ . '/../view/frontend/web/css/briizpay.css');
 
 $checks = [
     'accepts the API-signed vector' => [$s->verify($body, $header, $secret, $timestamp), true],
@@ -102,6 +231,51 @@ $checks = [
     'discount: strings from the config table work' => [Discount::compute('60.00', 'percent', '2.5'), 1.50],
     'discount: an unknown type is treated as percent' => [Discount::compute(100.00, 'bogus', 1), 1.00],
     'discount: currency precision is honoured' => [Discount::compute(45.99, 'percent', 1, 0), 0.0],
+
+    // The logo setting and what the checkout is given.
+    'logo: the flag reads on' => [$flagOn, true],
+    'logo: the flag reads off' => [$flagOff, false],
+    'logo: an unset flag reads off, so the shipped default is what turns it on' => [$flagUnset, false],
+    'logo: the flag is read for the store asked about' => [$readFor['payment/briizpay/show_logo'], 7],
+    'logo: on by default in config.xml' => [(string) $shipped->show_logo, '1'],
+    'logo: the admin field is a Yes/No at store scope' => [
+        $adminField === null ? null : [
+            (string) $adminField->label,
+            (string) $adminField->source_model,
+            (string) $adminField['showInStore'],
+            (string) $adminField->comment,
+        ],
+        [
+            'Show bank logos at checkout',
+            'Magento\Config\Model\Config\Source\Yesno',
+            '1',
+            'Turn off if your theme already decorates payment methods.',
+        ],
+    ],
+    'logo: the checkout is told to show them' => [$logoOn['showLogo'], true],
+    'logo: the checkout is given the four bank addresses, in order' => [$logoOn['logoUrls'], $bankUrls],
+    'logo: the assets are the module images, asked for securely' => [
+        $logoAsked,
+        array_map(static fn (string $asset): array => [$asset, ['_secure' => true]], $bankAssets),
+    ],
+    'logo: turned off, the checkout is told not to show them' => [$logoOff['showLogo'], false],
+    'logo: assets that cannot be resolved give an empty list, not an error' => [$logoLost['logoUrls'], []],
+    'logo: one asset that cannot be resolved is left out alone' => [
+        $logoOneLost['logoUrls'],
+        [$bankUrls[0], $bankUrls[2], $bankUrls[3]],
+    ],
+    'logo: the description is still given' => [$logoOn['description'], 'Pay from your bank'],
+    'logo: the redirect address is still given' => [$logoOn['redirectUrl'], 'https://shop.test/briizpay/checkout/redirect'],
+    'logo: the pay by bank offer flag is untouched' => [[$logoOff['discountOffered'], $withDiscount['discountOffered']], [false, true]],
+    'logo: the shipped images are four 40px squares, twice their 20px display size' => [$images, array_fill(0, 4, [40, 40, 'image/png'])],
+    'logo: the old wordmark is not shipped' => [file_exists(__DIR__ . '/../view/frontend/web/images/briizpay-logo.png'), false],
+    'logo: every image is decorative, with an empty alt' => [substr_count($template, 'alt=""'), 1],
+    'logo: no image in the template has alt text' => [preg_match('/alt="[^"]/', $template), 0],
+    'logo: the row is hidden from assistive technology' => [str_contains($template, 'class="briizpay-logos" aria-hidden="true"'), true],
+    'logo: the icons are 20px with 4px rounded corners and a 4px gap' => [
+        [str_contains($css, 'height: 20px;'), str_contains($css, 'width: 20px;'), str_contains($css, 'border-radius: 4px;'), str_contains($css, 'gap: 4px;')],
+        [true, true, true, true],
+    ],
 
     // Discount::share(), for invoices and credit memos.
     'share: a whole-order document takes it all' => [Discount::share(1.20, 0.0, true, 120.00, 120.00), 1.20],

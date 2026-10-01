@@ -6,6 +6,15 @@
                data-bind="attr: {'id': getCode()}, value: getCode(), checked: isChecked, click: selectPaymentMethod, visible: isRadioButtonVisible()"/>
         <label data-bind="attr: {'for': getCode()}" class="label">
             <span data-bind="text: getTitle()"></span>
+            <!-- ko if: getLogoUrls().length -->
+            <!-- Decorative: the title already says pay by bank. -->
+            <span class="briizpay-logos" aria-hidden="true">
+                <!-- ko foreach: getLogoUrls() -->
+                <img alt="" data-bind="attr: {src: $data}"/>
+                <!-- /ko -->
+                <span class="briizpay-logos-more" data-bind="i18n: '+ more'"></span>
+            </span>
+            <!-- /ko -->
         </label>
     </div>
     <div class="payment-method-content">

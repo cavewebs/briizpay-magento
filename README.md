@@ -51,6 +51,20 @@ totals worked out again, and an order paid any other way that still carries the
 discount is refused. So choosing pay by bank, seeing the saving and then placing
 the order with another method gets the full price.
 
+**Logo.** A row of four UK bank logos (Barclays, HSBC, NatWest and Monzo),
+bundled with the module, shows beside the method's name at checkout, each 20px
+square with 4px rounded corners and a muted "+ more" after them. It tells a
+customer at a glance that they pay from their own bank, so the method looks as
+established as the other payment methods around it. The images are decorative,
+because the title already says pay by bank: each has an empty `alt` and the row
+is hidden from assistive technology. The logos are trademarks of their owners,
+shown only to indicate that the customer pays from their own bank. They are on
+by default. Turn off **Show bank logos at checkout** if your theme already
+decorates payment methods; it can be set per store view. The config path is
+still `payment/briizpay/show_logo`, so stores that set it for the single logo
+keep their choice. It needs the static content deploy like the rest of the
+checkout's files.
+
 **Cancelling.** When a BriizPay order is cancelled, by an admin, the return page
 or Magento's Pending Payment Order Lifetime cleanup, the module cancels the pay
 link on BriizPay so it cannot be paid later.
@@ -92,10 +106,19 @@ agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
    secret. Both are stored encrypted.
 3. Optionally, in the same place, set **Offer a discount for paying by bank** to
    Yes and choose a percentage of the order or a fixed amount in pounds.
+4. Optionally, set **Show bank logos at checkout** to No.
 
 A key beginning `bzp_sk_test_` uses the BriizPay test environment and moves no
 real money; `bzp_sk_live_` is live. The method is hidden at checkout until a key
 of the right shape is saved, and for any currency other than GBP.
+
+## Changelog
+
+- **1.1.1**: A row of UK bank logos (Barclays, HSBC, NatWest, Monzo) shows
+  beside the method's name at checkout, with a **Show bank logos at checkout**
+  setting to turn it off. On by default. The logos are trademarks of their
+  owners and are shown only to indicate that the customer pays from their own
+  bank.
 
 ## What it does not do yet
 
@@ -110,5 +133,7 @@ php Test/run.php
 
 Pins the webhook signature against a vector produced by the API's own signing
 code, pence conversion, the receipt lines, and the pay by bank discount's
-arithmetic, with the same cases as the WooCommerce plugin's tests. The rest is
+arithmetic, with the same cases as the WooCommerce plugin's tests, and the
+bank logos: the setting's default and admin field, what the checkout is given,
+the decorative markup and the shipped images. The rest is
 exercised end to end against a Mage-OS testbed and the BriizPay test environment.

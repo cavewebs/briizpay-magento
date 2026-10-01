@@ -34,6 +34,19 @@ class Config
         return $this->scopeConfig->isSetFlag(self::PATH . 'active', ScopeInterface::SCOPE_STORE, $storeId);
     }
 
+    /**
+     * Show the bank logos beside the method's name at checkout.
+     *
+     * Store scoped, like the title they sit beside, so a multi-store merchant
+     * can drop them on a storefront whose theme already decorates methods. The
+     * config path stays show_logo so a store that set it for the single logo
+     * keeps its choice.
+     */
+    public function showLogo(?int $storeId = null): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::PATH . 'show_logo', ScopeInterface::SCOPE_STORE, $storeId);
+    }
+
     public function getApiKey(?int $storeId = null): string
     {
         return $this->secret('api_key', 'bzp_sk_', $storeId);

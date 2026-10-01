@@ -80,6 +80,13 @@ define([
             return this.getConfig().description || '';
         },
 
+        /** @return {Array} the bank logos' addresses, empty when turned off or missing */
+        getLogoUrls: function () {
+            var config = this.getConfig();
+
+            return config.showLogo && Array.isArray(config.logoUrls) ? config.logoUrls : [];
+        },
+
         /** "BriizPay - Pay by bank and save £1.20", while there is a saving to name. */
         getTitle: function () {
             var title = this._super(),

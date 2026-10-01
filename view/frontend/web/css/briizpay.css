@@ -1,0 +1,27 @@
+/* The bank logos beside the method's name at checkout. The files are 40px
+   squares, twice the 20px they are shown at, so they stay sharp on high density
+   screens. Sizes are set on the images themselves because themes commonly reset
+   img to max-width: 100% and height: auto. */
+.payment-method-title .briizpay-logos {
+    align-items: center;
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.payment-method-title .briizpay-logos img {
+    border-radius: 4px;
+    display: block;
+    height: 20px;
+    max-width: none;
+    width: 20px;
+}
+
+.payment-method-title .briizpay-logos-more {
+    font-size: 12px;
+    line-height: 1;
+    margin-left: 2px;
+    opacity: 0.65;
+}
