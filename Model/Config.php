@@ -57,7 +57,7 @@ class Config
         return $this->secret('webhook_secret', 'whsec_', $storeId);
     }
 
-    /** A key that could work: the right shape, before anything is sent. */
+    /** A key that could work: the right format, before anything is sent. */
     public function hasValidApiKey(?int $storeId = null): bool
     {
         return (bool) preg_match('/^bzp_sk_(live|test)_[A-Za-z0-9]{40}$/', $this->getApiKey($storeId));

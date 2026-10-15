@@ -7,17 +7,17 @@ namespace BriizPay\PayByBank\Model;
  * What a store is told before BriizPay is connected.
  *
  * An unconnected module is harmless: the method stays hidden at checkout until
- * a key of the right shape is saved. It is also silent, which is the actual
- * problem. The config section shows a form and one line of group comment
- * written for someone already holding a key, so a merchant whose developer
- * installed the module, or who found it in Marketplace, is asked for an API key
+ * a valid key is saved. It is also silent, and that is what this fixes. The
+ * config section shows a form and one line of group comment written for
+ * someone already holding a key, so a merchant whose developer installed
+ * the module, or who found it in Marketplace, is asked for an API key
  * by a screen that never says what BriizPay is or what the store gains by
  * using it. The people most likely to read it are the ones who know least
  * about us.
  *
- * The copy lives here rather than in the block because two places show it: the
+ * The copy sits here rather than in the block because two places show it: the
  * config section, and the admin system message for a store that has not opened
- * that section yet. It is also the only part worth testing, and a block needs
+ * that section yet. It is also the part the tests can reach, and a block needs
  * Magento loaded.
  *
  * Leading with what the merchant gets is deliberate. A merchant choosing a
@@ -44,7 +44,7 @@ class Onboarding
     /**
      * Connected, but the webhook signing secret is missing.
      *
-     * Worth saying out loud rather than leaving to a field comment. The webhook
+     * Said out loud rather than left to a field comment. The webhook
      * is what marks an order paid, so this configuration takes a customer's
      * money and leaves the order sitting unpaid, and nothing at the checkout
      * looks wrong while it happens.

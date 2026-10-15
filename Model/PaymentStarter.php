@@ -16,7 +16,7 @@ use Magento\Sales\Model\Order;
  * from the bank and tries again, is sent to the same payment rather than
  * creating a second one for the same order.
  *
- * The link carries start=1, so the BriizPay pay page starts the payment as it
+ * The link includes start=1, so the BriizPay pay page starts the payment as it
  * loads and the customer goes straight to choosing their bank: they have already
  * seen the order and chosen this method at checkout.
  */

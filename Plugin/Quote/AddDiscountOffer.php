@@ -42,7 +42,7 @@ class AddDiscountOffer
             $address = $quote->isVirtual() ? $quote->getBillingAddress() : $quote->getShippingAddress();
             [$offer] = $this->calculator->offerFor($address->getAllItems(), (int) $quote->getStoreId());
         } catch (\Throwable $e) {
-            // A label is not worth failing the basket's totals over.
+            // A label must not fail the basket's totals.
             $this->logger->warning('[BriizPay] Could not work out the pay by bank saving: ' . $e->getMessage());
             return $totals;
         }

@@ -107,7 +107,7 @@ $moduleConfig = static function (ScopeConfigInterface $scopeConfig): Config {
     return new Config($scopeConfig, $encryptor, $url);
 };
 
-// The first-run guidance, built on the real Config so the key shape rules are
+// The first-run guidance, built on the module's own Config so the key format rules are
 // the ones the checkout uses.
 $onboarding = static function (array $values) use ($scope, $moduleConfig): Onboarding {
     return new Onboarding($moduleConfig($scope($values)));
@@ -241,7 +241,7 @@ $checks = [
     'discount: half a percent on a small basket' => [Discount::compute(12.34, 'percent', 0.5), 0.06],
     'discount: a fixed amount is taken as pounds' => [Discount::compute(100.00, 'fixed', 1), 1.00],
     'discount: a fixed amount never exceeds the basket' => [Discount::compute(0.50, 'fixed', 5), 0.50],
-    'discount: one hundred percent is the whole basket' => [Discount::compute(80.00, 'percent', 100), 80.00],
+    'discount: one hundred percent is the basket itself' => [Discount::compute(80.00, 'percent', 100), 80.00],
     'discount: nothing off when the amount is zero' => [Discount::compute(100.00, 'percent', 0), 0.0],
     'discount: nothing off a negative amount' => [Discount::compute(100.00, 'percent', -3), 0.0],
     'discount: nothing off an empty basket' => [Discount::compute(0, 'percent', 1), 0.0],
@@ -302,8 +302,8 @@ $checks = [
     'share: nothing once it is all taken' => [Discount::share(1.00, 1.00, true, 60.00, 120.00), 0.0],
     'share: a document with no items takes none' => [Discount::share(1.00, 0.0, false, 0.0, 120.00), 0.0],
     'onboarding: nothing saved is not connected' => [$onboarding([])->isConnected(), false],
-    'onboarding: a key of the wrong shape is not connected' => [$onboarding(['payment/briizpay/api_key' => 'bzp_sk_live_short'])->isConnected(), false],
-    'onboarding: a key of the right shape is connected' => [$onboarding(['payment/briizpay/api_key' => $validKey])->isConnected(), true],
+    'onboarding: a key in the wrong format is not connected' => [$onboarding(['payment/briizpay/api_key' => 'bzp_sk_live_short'])->isConnected(), false],
+    'onboarding: a key in the right format is connected' => [$onboarding(['payment/briizpay/api_key' => $validKey])->isConnected(), true],
     'onboarding: a connected store with no secret is told to add one' => [
         $onboarding(['payment/briizpay/api_key' => $validKey])->needsWebhookSecret(),
         true,

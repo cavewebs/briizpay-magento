@@ -9,9 +9,9 @@ use Magento\Framework\Exception\LocalizedException;
 
 /**
  * A discount amount has to be a number of zero or more, and a percentage
- * cannot be more than the whole order.
+ * cannot be more than the full order.
  *
- * Refused at save, with the reason, rather than saved and then quietly read as
+ * Refused at save, with the reason, rather than saved and then silently read as
  * something else every time a basket is totalled.
  */
 class DiscountAmount extends Value

@@ -16,7 +16,7 @@ use Magento\Quote\Model\QuoteManagement;
  * collected when something asks. A basket totalled with BriizPay chosen keeps
  * that discount on its address until the next collection, so any way of
  * placing an order that changes the method without collecting again would
- * carry the discount onto an order paid some other way. In the WooCommerce
+ * leave the discount on an order paid some other way. In the WooCommerce
  * plugin exactly that happened: choose pay by bank, see the discount, place
  * the order naming a card. Magento's own checkout collects again when the
  * method is set, but that is a property of today's core code paths, not a

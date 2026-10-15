@@ -13,7 +13,7 @@ use Magento\Quote\Model\Quote\Address\Total\AbstractTotal;
 /**
  * The pay by bank discount as a line of its own in the basket's totals.
  *
- * It lives and dies with the payment method: every time the totals are
+ * It appears and disappears with the payment method: every time the totals are
  * collected it is worked out again from the quote's method, so choosing
  * another method and collecting again takes it off. Magento collects the
  * totals whenever a method is set, so the checkout sees the change on its next

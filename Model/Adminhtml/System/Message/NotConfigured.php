@@ -16,7 +16,7 @@ use Magento\Framework\Notification\MessageInterface;
  * not already know BriizPay exists has no reason to go to Payment Methods and
  * look, and the module is most often installed by somebody else.
  *
- * It stops showing itself as soon as a key of the right shape is saved, so it
+ * It stops showing itself as soon as a valid key is saved, so it
  * cannot become the notification nobody reads.
  */
 class NotConfigured implements MessageInterface

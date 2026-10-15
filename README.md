@@ -47,7 +47,7 @@ on the customer's BriizPay receipt. The amount charged is the discounted total.
 The discount is decided on the server from the method the order is actually
 placed with, never from what the checkout showed. Just before any basket becomes
 an order, a basket whose discount does not match its payment method has its
-totals worked out again, and an order paid any other way that still carries the
+totals worked out again, and an order paid any other way that still has the
 discount is refused. So choosing pay by bank, seeing the saving and then placing
 the order with another method gets the full price.
 
@@ -92,7 +92,7 @@ Update with `composer update briizpay/module-paybybank` and the same commands.
 
 ## Releasing
 
-Packagist reads the version from git tags. `composer.json` also carries
+Packagist reads the version from git tags. `composer.json` also includes
 `version`, because the Adobe Commerce Marketplace requires it, so the two must
 agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
 
@@ -110,17 +110,17 @@ agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
 
 A key beginning `bzp_sk_test_` uses the BriizPay test environment and moves no
 real money; `bzp_sk_live_` is live. The method is hidden at checkout until a key
-of the right shape is saved, and for any currency other than GBP.
+in the right format is saved, and for any currency other than GBP.
 
 ## Before it is connected
 
-The method is hidden at checkout until a key of the right shape is saved, so an
+The method is hidden at checkout until a valid key is saved, so an
 unconnected install changes nothing for shoppers. It used to be silent as well,
 which left a merchant whose developer installed the module looking at a form
 asking for an API key with nothing saying what BriizPay is or why they would
 want it.
 
-`Model/Onboarding.php` owns that first run and two surfaces draw it:
+`Model/Onboarding.php` owns that first run and two screens draw it:
 
 - **The config section.** While there is no key,
   `Block/Adminhtml/System/Config/Intro.php` renders an introduction above the
@@ -136,7 +136,7 @@ A key saved without a webhook signing secret replaces the introduction with its
 own warning, because that configuration takes payments and leaves the orders
 unpaid with nothing at the checkout looking wrong.
 
-The copy lives in the model rather than the block because both surfaces draw it,
+The copy sits in the model rather than the block because both screens draw it,
 and it is the first thing a new merchant reads about the product.
 
 ## Changelog

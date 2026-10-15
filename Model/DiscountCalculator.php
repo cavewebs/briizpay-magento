@@ -69,8 +69,8 @@ class DiscountCalculator
      *
      * Each row is counted the way Model/LineItems counts an order line, so the
      * basis is the sum of the item lines on the customer's receipt. A bundle
-     * priced from its parts carries its amounts on its children; everything
-     * else carries them on the row the customer sees.
+     * priced from its parts records its amounts on its children; everything
+     * else records them on the row the customer sees.
      *
      * @param iterable<AbstractItem> $items
      * @return array{0: float, 1: float}
