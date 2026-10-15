@@ -112,7 +112,40 @@ A key beginning `bzp_sk_test_` uses the BriizPay test environment and moves no
 real money; `bzp_sk_live_` is live. The method is hidden at checkout until a key
 of the right shape is saved, and for any currency other than GBP.
 
+## Before it is connected
+
+The method is hidden at checkout until a key of the right shape is saved, so an
+unconnected install changes nothing for shoppers. It used to be silent as well,
+which left a merchant whose developer installed the module looking at a form
+asking for an API key with nothing saying what BriizPay is or why they would
+want it.
+
+`Model/Onboarding.php` owns that first run and two surfaces draw it:
+
+- **The config section.** While there is no key,
+  `Block/Adminhtml/System/Config/Intro.php` renders an introduction above the
+  fields: what the store gains, what the customer does at checkout, and the
+  numbered path to a key, with a link to create an account. Once a key is saved
+  it disappears.
+- **The admin notification.** `Model/Adminhtml/System/Message/NotConfigured.php`
+  tells a merchant the module is there at all, since the one most likely to need
+  this did not install it themselves. It stops showing as soon as a key is
+  saved.
+
+A key saved without a webhook signing secret replaces the introduction with its
+own warning, because that configuration takes payments and leaves the orders
+unpaid with nothing at the checkout looking wrong.
+
+The copy lives in the model rather than the block because both surfaces draw it,
+and it is the first thing a new merchant reads about the product.
+
 ## Changelog
+
+- **1.2.0**: A store that has installed the module but not connected it now gets
+  a proper introduction in the config section and an admin notification pointing
+  at it, instead of a form asking for an API key with no explanation. A key saved
+  without a webhook signing secret now says that orders will stay unpaid until
+  the secret is added.
 
 - **1.1.1**: A row of UK bank logos (Barclays, HSBC, NatWest, Monzo) shows
   beside the method's name at checkout, with a **Show bank logos at checkout**

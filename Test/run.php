@@ -29,11 +29,13 @@ require __DIR__ . '/../Model/Discount.php';
 require __DIR__ . '/MagentoStubs.php';
 require __DIR__ . '/../Model/Config.php';
 require __DIR__ . '/../Model/Ui/ConfigProvider.php';
+require __DIR__ . '/../Model/Onboarding.php';
 
 use BriizPay\PayByBank\Model\Config;
 use BriizPay\PayByBank\Model\Discount;
 use BriizPay\PayByBank\Model\LineItems;
 use BriizPay\PayByBank\Model\Money;
+use BriizPay\PayByBank\Model\Onboarding;
 use BriizPay\PayByBank\Model\Signature;
 use BriizPay\PayByBank\Model\Ui\ConfigProvider;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -103,6 +105,21 @@ $moduleConfig = static function (ScopeConfigInterface $scopeConfig): Config {
         }
     };
     return new Config($scopeConfig, $encryptor, $url);
+};
+
+// The first-run guidance, built on the real Config so the key shape rules are
+// the ones the checkout uses.
+$onboarding = static function (array $values) use ($scope, $moduleConfig): Onboarding {
+    return new Onboarding($moduleConfig($scope($values)));
+};
+$validKey = 'bzp_sk_live_' . str_repeat('a', 40);
+$allCopy = static function (Onboarding $o): string {
+    return implode(' ', array_merge(
+        [$o->headline(), $o->summary(), $o->customerExperience(), $o->footnote()],
+        [$o->webhookHeading(), $o->webhookBody(), $o->messageText()],
+        $o->benefits(),
+        $o->steps()
+    ));
 };
 $provider = static function (array $values, ?string $logoBase, ?string $unresolvable = null) use ($scope, $moduleConfig, &$assetAsked): array {
     $assetAsked = [];
@@ -284,6 +301,49 @@ $checks = [
     'share: never more than is left' => [Discount::share(1.00, 0.90, false, 60.00, 120.00), 0.10],
     'share: nothing once it is all taken' => [Discount::share(1.00, 1.00, true, 60.00, 120.00), 0.0],
     'share: a document with no items takes none' => [Discount::share(1.00, 0.0, false, 0.0, 120.00), 0.0],
+    'onboarding: nothing saved is not connected' => [$onboarding([])->isConnected(), false],
+    'onboarding: a key of the wrong shape is not connected' => [$onboarding(['payment/briizpay/api_key' => 'bzp_sk_live_short'])->isConnected(), false],
+    'onboarding: a key of the right shape is connected' => [$onboarding(['payment/briizpay/api_key' => $validKey])->isConnected(), true],
+    'onboarding: a connected store with no secret is told to add one' => [
+        $onboarding(['payment/briizpay/api_key' => $validKey])->needsWebhookSecret(),
+        true,
+    ],
+    'onboarding: a store with both is left alone' => [
+        $onboarding(['payment/briizpay/api_key' => $validKey, 'payment/briizpay/webhook_secret' => 'whsec_x'])->needsWebhookSecret(),
+        false,
+    ],
+    'onboarding: an unconnected store is shown the introduction, not the webhook warning' => [
+        $onboarding([])->needsWebhookSecret(),
+        false,
+    ],
+    'onboarding: leads with what the store gains, not how the payment works' => [
+        str_starts_with($onboarding([])->benefits()[0], 'Keep more of each sale'),
+        true,
+    ],
+    'onboarding: the first step is making an account' => [
+        str_contains($onboarding([])->steps()[0], 'Create a BriizPay account'),
+        true,
+    ],
+    'onboarding: it says the method stays hidden until a key is saved' => [
+        str_contains($onboarding([])->footnote(), 'hidden at checkout'),
+        true,
+    ],
+    'onboarding: the webhook warning says the order stays unpaid' => [
+        str_contains($onboarding([])->webhookBody(), 'the order will stay unpaid'),
+        true,
+    ],
+    'onboarding: the signup and connect addresses are the app, not the marketing site' => [
+        [Onboarding::SIGNUP_URL, Onboarding::CONNECT_URL],
+        ['https://app.briizpay.com/register', 'https://app.briizpay.com/dashboard/integrations'],
+    ],
+    'onboarding: no em dash anywhere in the copy' => [str_contains($allCopy($onboarding([])), "\u{2014}"), false],
+    'onboarding: the admin message and the section are wired up' => [
+        [
+            str_contains(file_get_contents(__DIR__ . '/../etc/adminhtml/di.xml'), 'System\\Message\\NotConfigured'),
+            str_contains(file_get_contents(__DIR__ . '/../etc/adminhtml/system.xml'), 'Config\\Intro'),
+        ],
+        [true, true],
+    ],
 ];
 
 $failed = 0;

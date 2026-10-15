@@ -5,6 +5,16 @@
             <group id="briizpay" translate="label comment" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>BriizPay - Pay by bank</label>
                 <comment><![CDATA[UK Open Banking payments at checkout. Your customer approves in their own banking app and the money goes straight to your bank account. Connect your store in the BriizPay dashboard under Integrations, Magento, to get the API key and webhook signing secret below.]]></comment>
+                <!--
+                    Not a setting: the introduction a store sees before it has
+                    connected, and the missing-webhook warning after it has.
+                    Block/Adminhtml/System/Config/Intro.php renders nothing once
+                    both are saved.
+                -->
+                <field id="intro" translate="label" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label></label>
+                    <frontend_model>BriizPay\PayByBank\Block\Adminhtml\System\Config\Intro</frontend_model>
+                </field>
                 <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
