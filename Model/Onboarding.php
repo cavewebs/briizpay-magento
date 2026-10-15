@@ -72,8 +72,8 @@ class Onboarding
     {
         return [
             $this->t('Keep more of each sale. A flat fee rather than a percentage, so the cost does not grow with the basket.'),
-            $this->t('The money is yours immediately. It goes to your own bank account instead of being held and settled days later.'),
-            $this->t('No card chargebacks, because the customer authorises the payment themselves inside their bank.'),
+            $this->t('Paid into your own bank account rather than held and settled days later.'),
+            $this->t('Reduces your exposure to card chargebacks, because the customer authorises the payment inside their own bank.'),
             $this->t('It runs alongside your card gateway. Nothing is replaced, shoppers simply get another way to pay.'),
         ];
     }
