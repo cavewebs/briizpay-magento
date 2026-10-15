@@ -112,6 +112,38 @@ A key beginning `bzp_sk_test_` uses the BriizPay test environment and moves no
 real money; `bzp_sk_live_` is live. The method is hidden at checkout until a key
 of the right shape is saved, and for any currency other than GBP.
 
+## Planned: an introduction before it is configured
+
+A store that installs this module and opens **Payment Methods, BriizPay** sees
+a form and one paragraph of group comment. That paragraph says where to get a
+key, not what BriizPay is or why the store would want it, and a merchant whose
+developer installed the module has no reason to know either. Nothing is broken:
+`Model/Config.php` keeps the method hidden at checkout until a key of the right
+shape is saved. The gap is that the screen asks for a key without first earning
+it.
+
+While no valid key is saved, the config section should lead with an
+introduction rather than a form:
+
+- **What the shopper does.** Picks their bank, approves in their own banking
+  app, comes back. No card details typed, nothing stored.
+- **What the store gains.** The money arrives in the store's own bank account
+  rather than being settled days later, no percentage is taken from the sale,
+  and there are no card chargebacks.
+- **That it sits alongside cards** rather than replacing the existing gateway,
+  which is the first thing a merchant worries about.
+- **Then the numbered setup below**, including a signup link for a store with no
+  BriizPay account yet. "Integrations, Magento" is useless to someone who cannot
+  log in, and that is the likeliest reader of this screen.
+
+A `frontend_model` on a fieldset, the way
+`Block/Adminhtml/System/Config/WebhookUrl.php` already renders the webhook URL,
+is the obvious way in. Scope it to the unconfigured state: once a key is saved
+it becomes noise.
+
+The same note is on the WooCommerce plugin, which has the same gap in
+`admin_options()`.
+
 ## Changelog
 
 - **1.1.1**: A row of UK bank logos (Barclays, HSBC, NatWest, Monzo) shows
