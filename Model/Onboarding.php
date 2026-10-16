@@ -107,8 +107,8 @@ class Onboarding
     {
         return $this->t(
             'Nothing changes for your shoppers while you set this up: BriizPay stays hidden at checkout '
-            . 'until a key is saved. A key beginning bzp_sk_test_ runs against the BriizPay test '
-            . 'environment, where no real money moves.'
+            . 'until a key is saved. A key beginning bzp_sk_sandbox_ runs against the BriizPay '
+            . 'sandbox, where no real money moves, so you can place a test order first.'
         );
     }
 

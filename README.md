@@ -108,8 +108,16 @@ agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
    Yes and choose a percentage of the order or a fixed amount in pounds.
 4. Optionally, set **Show bank logos at checkout** to No.
 
-A key beginning `bzp_sk_test_` uses the BriizPay test environment and moves no
-real money; `bzp_sk_live_` is live. The method is hidden at checkout until a key
+The key decides which BriizPay the store talks to, and there is no second
+setting that could disagree with it:
+
+| Key | Host |
+|---|---|
+| `bzp_sk_live_` | `api.briizpay.com` |
+| `bzp_sk_sandbox_` | `sandbox.api.briizpay.com`, where no real money moves |
+| `bzp_sk_test_` | `dev.api.briizpay.com`, BriizPay's own development environment |
+
+The method is hidden at checkout until a key
 in the right format is saved, and for any currency other than GBP.
 
 ## Before it is connected
@@ -141,6 +149,10 @@ and it is the first thing a new merchant reads about the product.
 
 ## Changelog
 
+- **1.2.0**: Routes to the right BriizPay from the key alone: `bzp_sk_sandbox_`
+  keys now reach the BriizPay sandbox, where a store can place a test order
+  before going live. Live keys are unaffected, and existing `bzp_sk_test_` keys
+  still reach the development environment.
 - **1.2.0**: A store that has installed the module but not connected it now gets
   a proper introduction in the config section and an admin notification pointing
   at it, instead of a form asking for an API key with no explanation. A key saved

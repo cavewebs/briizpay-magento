@@ -34,7 +34,7 @@
                 <field id="api_key" translate="label comment" type="obscure" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>API key</label>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
-                    <comment>From BriizPay. A key beginning bzp_sk_test_ uses the test environment and moves no real money.</comment>
+                    <comment>From BriizPay. The key decides which BriizPay the store talks to, so there is nothing else to switch: bzp_sk_sandbox_ for testing, where no real money moves, and bzp_sk_live_ to take real payments.</comment>
                 </field>
                 <field id="webhook_secret" translate="label" type="obscure" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Webhook signing secret</label>

@@ -113,6 +113,14 @@ $onboarding = static function (array $values) use ($scope, $moduleConfig): Onboa
     return new Onboarding($moduleConfig($scope($values)));
 };
 $validKey = 'bzp_sk_live_' . str_repeat('a', 40);
+$keyFor = static fn (string $env): string => 'bzp_sk_' . $env . '_' . str_repeat('a', 40);
+// The key is the only thing that decides which BriizPay a store talks to, so a
+// wrong mapping sends real payments at a test environment, or test traffic at
+// production. Both succeed against the wrong host and look fine.
+$envFor = static function (string $key) use ($scope, $moduleConfig): string {
+    return $moduleConfig($scope(['payment/briizpay/api_key' => $key]))->environment();
+};
+$clientSource = file_get_contents(__DIR__ . '/../Model/Api/Client.php');
 $allCopy = static function (Onboarding $o): string {
     return implode(' ', array_merge(
         [$o->headline(), $o->summary(), $o->customerExperience(), $o->footnote()],
@@ -343,6 +351,45 @@ $checks = [
             str_contains(file_get_contents(__DIR__ . '/../etc/adminhtml/system.xml'), 'Config\\Intro'),
         ],
         [true, true],
+    ],
+    'routing: a live key is live' => [$envFor($keyFor('live')), 'live'],
+    'routing: a sandbox key is sandbox' => [$envFor($keyFor('sandbox')), 'sandbox'],
+    'routing: a test key is test' => [$envFor($keyFor('test')), 'test'],
+    'routing: an unrecognised key is not treated as sandbox' => [$envFor('nonsense'), 'live'],
+    'routing: sandbox is accepted as a valid key' => [
+        $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('sandbox')]))->hasValidApiKey(),
+        true,
+    ],
+    'routing: an unknown segment is refused' => [
+        $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('staging')]))->hasValidApiKey(),
+        false,
+    ],
+    'routing: isTestKey means anything that is not live' => [
+        [
+            $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('live')]))->isTestKey(),
+            $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('sandbox')]))->isTestKey(),
+            $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('test')]))->isTestKey(),
+        ],
+        [false, true, true],
+    ],
+    // The client picks the host from that environment. Asserted against the
+    // shipped source because building a Client needs Magento's curl factory,
+    // and three distinct hosts is what this has to guarantee.
+    'routing: the client ships three distinct hosts' => [
+        [
+            str_contains($clientSource, "LIVE_BASE = 'https://api.briizpay.com'"),
+            str_contains($clientSource, "SANDBOX_BASE = 'https://sandbox.api.briizpay.com'"),
+            str_contains($clientSource, "TEST_BASE = 'https://dev.api.briizpay.com'"),
+        ],
+        [true, true, true],
+    ],
+    'routing: the client maps each environment to its own host' => [
+        [
+            str_contains($clientSource, "'sandbox' => self::SANDBOX_BASE"),
+            str_contains($clientSource, "'test' => self::TEST_BASE"),
+            str_contains($clientSource, 'default => self::LIVE_BASE'),
+        ],
+        [true, true, true],
     ],
 ];
 

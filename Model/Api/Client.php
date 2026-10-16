@@ -21,6 +21,7 @@ use Psr\Log\LoggerInterface;
 class Client
 {
     private const LIVE_BASE = 'https://api.briizpay.com';
+    private const SANDBOX_BASE = 'https://sandbox.api.briizpay.com';
     private const TEST_BASE = 'https://dev.api.briizpay.com';
 
     public function __construct(
@@ -69,7 +70,14 @@ class Client
         }
 
         $key = $this->config->getApiKey($storeId);
-        $base = $this->config->isTestKey($storeId) ? self::TEST_BASE : self::LIVE_BASE;
+        // The key alone decides the host. A sandbox key reaching the
+        // development API, which is what happened while sandbox shared the
+        // 'test' segment, succeeds against the wrong environment and looks fine.
+        $base = match ($this->config->environment($storeId)) {
+            'sandbox' => self::SANDBOX_BASE,
+            'test' => self::TEST_BASE,
+            default => self::LIVE_BASE,
+        };
 
         $curl = $this->curlFactory->create();
         $curl->setTimeout(20);
