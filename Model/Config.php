@@ -57,16 +57,37 @@ class Config
         return $this->secret('webhook_secret', 'whsec_', $storeId);
     }
 
-    /** A key that could work: the right shape, before anything is sent. */
+    /** A key that could work: the right format, before anything is sent. */
     public function hasValidApiKey(?int $storeId = null): bool
     {
-        return (bool) preg_match('/^bzp_sk_(live|test)_[A-Za-z0-9]{40}$/', $this->getApiKey($storeId));
+        return (bool) preg_match('/^bzp_sk_(live|sandbox|test)_[A-Za-z0-9]{40}$/', $this->getApiKey($storeId));
     }
 
-    /** The environment follows the key, so a test key can never move real money. */
+    /**
+     * Which BriizPay this key belongs to: live, sandbox, or test.
+     *
+     * The environment follows the key, so a store pastes one value and cannot
+     * hold a second setting that disagrees with it. sandbox is where BriizPay
+     * invites merchants and integration partners to test. test is BriizPay's
+     * own development environment, and a key for it is not something a store
+     * would normally be given.
+     */
+    public function environment(?int $storeId = null): string
+    {
+        $key = $this->getApiKey($storeId);
+        if (str_starts_with($key, 'bzp_sk_sandbox_')) {
+            return 'sandbox';
+        }
+        if (str_starts_with($key, 'bzp_sk_test_')) {
+            return 'test';
+        }
+        return 'live';
+    }
+
+    /** Anything that is not a live key, so no real money moves. */
     public function isTestKey(?int $storeId = null): bool
     {
-        return str_starts_with($this->getApiKey($storeId), 'bzp_sk_test_');
+        return $this->environment($storeId) !== 'live';
     }
 
     /**

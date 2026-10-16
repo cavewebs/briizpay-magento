@@ -69,7 +69,7 @@ class Discount
     /**
      * How much of an order's discount goes on one invoice or credit memo.
      *
-     * The discount belongs to the whole basket, so a document for part of it
+     * The discount belongs to the basket as a whole, so a document for part of it
      * takes the same part of the discount, and the last document takes what
      * is left, so that the pennies rounding leaves behind are not lost or
      * counted twice. Never more than what is left: an order's discount is

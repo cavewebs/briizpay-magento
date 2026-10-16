@@ -47,7 +47,7 @@ on the customer's BriizPay receipt. The amount charged is the discounted total.
 The discount is decided on the server from the method the order is actually
 placed with, never from what the checkout showed. Just before any basket becomes
 an order, a basket whose discount does not match its payment method has its
-totals worked out again, and an order paid any other way that still carries the
+totals worked out again, and an order paid any other way that still has the
 discount is refused. So choosing pay by bank, seeing the saving and then placing
 the order with another method gets the full price.
 
@@ -92,7 +92,7 @@ Update with `composer update briizpay/module-paybybank` and the same commands.
 
 ## Releasing
 
-Packagist reads the version from git tags. `composer.json` also carries
+Packagist reads the version from git tags. `composer.json` also includes
 `version`, because the Adobe Commerce Marketplace requires it, so the two must
 agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
 
@@ -108,11 +108,56 @@ agree: set `version`, merge, then tag `vX.Y.Z` on that commit.
    Yes and choose a percentage of the order or a fixed amount in pounds.
 4. Optionally, set **Show bank logos at checkout** to No.
 
-A key beginning `bzp_sk_test_` uses the BriizPay test environment and moves no
-real money; `bzp_sk_live_` is live. The method is hidden at checkout until a key
-of the right shape is saved, and for any currency other than GBP.
+The key decides which BriizPay the store talks to, and there is no second
+setting that could disagree with it:
+
+| Key | Host |
+|---|---|
+| `bzp_sk_live_` | `api.briizpay.com` |
+| `bzp_sk_sandbox_` | `sandbox.api.briizpay.com`, where no real money moves |
+| `bzp_sk_test_` | `dev.api.briizpay.com`, BriizPay's own development environment |
+
+The method is hidden at checkout until a key
+in the right format is saved, and for any currency other than GBP.
+
+## Before it is connected
+
+The method is hidden at checkout until a valid key is saved, so an
+unconnected install changes nothing for shoppers. It used to be silent as well,
+which left a merchant whose developer installed the module looking at a form
+asking for an API key with nothing saying what BriizPay is or why they would
+want it.
+
+`Model/Onboarding.php` owns that first run and two screens draw it:
+
+- **The config section.** While there is no key,
+  `Block/Adminhtml/System/Config/Intro.php` renders an introduction above the
+  fields: what the store gains, what the customer does at checkout, and the
+  numbered path to a key, with a link to create an account. Once a key is saved
+  it disappears.
+- **The admin notification.** `Model/Adminhtml/System/Message/NotConfigured.php`
+  tells a merchant the module is there at all, since the one most likely to need
+  this did not install it themselves. It stops showing as soon as a key is
+  saved.
+
+A key saved without a webhook signing secret replaces the introduction with its
+own warning, because that configuration takes payments and leaves the orders
+unpaid with nothing at the checkout looking wrong.
+
+The copy sits in the model rather than the block because both screens draw it,
+and it is the first thing a new merchant reads about the product.
 
 ## Changelog
+
+- **1.2.0**: Routes to the right BriizPay from the key alone: `bzp_sk_sandbox_`
+  keys now reach the BriizPay sandbox, where a store can place a test order
+  before going live. Live keys are unaffected, and existing `bzp_sk_test_` keys
+  still reach the development environment.
+- **1.2.0**: A store that has installed the module but not connected it now gets
+  a proper introduction in the config section and an admin notification pointing
+  at it, instead of a form asking for an API key with no explanation. A key saved
+  without a webhook signing secret now says that orders will stay unpaid until
+  the secret is added.
 
 - **1.1.1**: A row of UK bank logos (Barclays, HSBC, NatWest, Monzo) shows
   beside the method's name at checkout, with a **Show bank logos at checkout**

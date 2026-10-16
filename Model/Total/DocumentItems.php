@@ -23,7 +23,7 @@ class DocumentItems
         $gross = 0.0;
         $base = 0.0;
         foreach ($items as $item) {
-            // A parent or child that carries no amounts of its own, the same
+            // A parent or child that has no amounts of its own, the same
             // rows Magento skips when it shares a discount across an invoice.
             $orderItem = $item->getOrderItem() ?: $item;
             if ($orderItem->isDummy()) {
