@@ -11,10 +11,10 @@ use Magento\Sales\Model\Order\Invoice\Total\AbstractTotal;
 /**
  * The order's pay by bank discount, taken off its invoice.
  *
- * Without it an invoice for the whole order would come to more than the order,
+ * Without it an invoice for the full order would come to more than the order,
  * and invoicing it would record more paid than the customer was charged. The
- * webhook invoices the whole order at once, so in practice the first invoice
- * takes the whole discount; a partial invoice raised by hand takes its share.
+ * webhook invoices the full order at once, so in practice the first invoice
+ * takes the discount in full; a partial invoice raised by hand takes its share.
  *
  * Runs after tax (etc/sales.xml), because the share is measured on the items
  * with their tax.

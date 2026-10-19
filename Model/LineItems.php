@@ -6,7 +6,7 @@ namespace BriizPay\PayByBank\Model;
 use Magento\Sales\Model\Order;
 
 /**
- * The order's lines, in the shape BriizPay puts on the receipt.
+ * The order's lines, in the form BriizPay puts on the receipt.
  *
  * Without them the customer's receipt has one line, "Order #000000004 at Main
  * Website Store", instead of what they bought.
@@ -205,7 +205,7 @@ class LineItems
         return function_exists('__') ? (string) __($text) : $text;
     }
 
-    /** A rate worked back from a gross and its tax, to the whole percent. */
+    /** A rate worked back from a gross and its tax, rounded to an integer percent. */
     public static function rateBps(int $gross, int $tax): int
     {
         $net = $gross - $tax;

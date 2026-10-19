@@ -29,11 +29,13 @@ require __DIR__ . '/../Model/Discount.php';
 require __DIR__ . '/MagentoStubs.php';
 require __DIR__ . '/../Model/Config.php';
 require __DIR__ . '/../Model/Ui/ConfigProvider.php';
+require __DIR__ . '/../Model/Onboarding.php';
 
 use BriizPay\PayByBank\Model\Config;
 use BriizPay\PayByBank\Model\Discount;
 use BriizPay\PayByBank\Model\LineItems;
 use BriizPay\PayByBank\Model\Money;
+use BriizPay\PayByBank\Model\Onboarding;
 use BriizPay\PayByBank\Model\Signature;
 use BriizPay\PayByBank\Model\Ui\ConfigProvider;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -103,6 +105,29 @@ $moduleConfig = static function (ScopeConfigInterface $scopeConfig): Config {
         }
     };
     return new Config($scopeConfig, $encryptor, $url);
+};
+
+// The first-run guidance, built on the module's own Config so the key format rules are
+// the ones the checkout uses.
+$onboarding = static function (array $values) use ($scope, $moduleConfig): Onboarding {
+    return new Onboarding($moduleConfig($scope($values)));
+};
+$validKey = 'bzp_sk_live_' . str_repeat('a', 40);
+$keyFor = static fn (string $env): string => 'bzp_sk_' . $env . '_' . str_repeat('a', 40);
+// The key is the only thing that decides which BriizPay a store talks to, so a
+// wrong mapping sends real payments at a test environment, or test traffic at
+// production. Both succeed against the wrong host and look fine.
+$envFor = static function (string $key) use ($scope, $moduleConfig): string {
+    return $moduleConfig($scope(['payment/briizpay/api_key' => $key]))->environment();
+};
+$clientSource = file_get_contents(__DIR__ . '/../Model/Api/Client.php');
+$allCopy = static function (Onboarding $o): string {
+    return implode(' ', array_merge(
+        [$o->headline(), $o->summary(), $o->customerExperience(), $o->footnote()],
+        [$o->webhookHeading(), $o->webhookBody(), $o->messageText()],
+        $o->benefits(),
+        $o->steps()
+    ));
 };
 $provider = static function (array $values, ?string $logoBase, ?string $unresolvable = null) use ($scope, $moduleConfig, &$assetAsked): array {
     $assetAsked = [];
@@ -224,7 +249,7 @@ $checks = [
     'discount: half a percent on a small basket' => [Discount::compute(12.34, 'percent', 0.5), 0.06],
     'discount: a fixed amount is taken as pounds' => [Discount::compute(100.00, 'fixed', 1), 1.00],
     'discount: a fixed amount never exceeds the basket' => [Discount::compute(0.50, 'fixed', 5), 0.50],
-    'discount: one hundred percent is the whole basket' => [Discount::compute(80.00, 'percent', 100), 80.00],
+    'discount: one hundred percent is the basket itself' => [Discount::compute(80.00, 'percent', 100), 80.00],
     'discount: nothing off when the amount is zero' => [Discount::compute(100.00, 'percent', 0), 0.0],
     'discount: nothing off a negative amount' => [Discount::compute(100.00, 'percent', -3), 0.0],
     'discount: nothing off an empty basket' => [Discount::compute(0, 'percent', 1), 0.0],
@@ -284,6 +309,88 @@ $checks = [
     'share: never more than is left' => [Discount::share(1.00, 0.90, false, 60.00, 120.00), 0.10],
     'share: nothing once it is all taken' => [Discount::share(1.00, 1.00, true, 60.00, 120.00), 0.0],
     'share: a document with no items takes none' => [Discount::share(1.00, 0.0, false, 0.0, 120.00), 0.0],
+    'onboarding: nothing saved is not connected' => [$onboarding([])->isConnected(), false],
+    'onboarding: a key in the wrong format is not connected' => [$onboarding(['payment/briizpay/api_key' => 'bzp_sk_live_short'])->isConnected(), false],
+    'onboarding: a key in the right format is connected' => [$onboarding(['payment/briizpay/api_key' => $validKey])->isConnected(), true],
+    'onboarding: a connected store with no secret is told to add one' => [
+        $onboarding(['payment/briizpay/api_key' => $validKey])->needsWebhookSecret(),
+        true,
+    ],
+    'onboarding: a store with both is left alone' => [
+        $onboarding(['payment/briizpay/api_key' => $validKey, 'payment/briizpay/webhook_secret' => 'whsec_x'])->needsWebhookSecret(),
+        false,
+    ],
+    'onboarding: an unconnected store is shown the introduction, not the webhook warning' => [
+        $onboarding([])->needsWebhookSecret(),
+        false,
+    ],
+    'onboarding: leads with what the store gains, not how the payment works' => [
+        str_starts_with($onboarding([])->benefits()[0], 'Keep more of each sale'),
+        true,
+    ],
+    'onboarding: the first step is making an account' => [
+        str_contains($onboarding([])->steps()[0], 'Create a BriizPay account'),
+        true,
+    ],
+    'onboarding: it says the method stays hidden until a key is saved' => [
+        str_contains($onboarding([])->footnote(), 'hidden at checkout'),
+        true,
+    ],
+    'onboarding: the webhook warning says the order stays unpaid' => [
+        str_contains($onboarding([])->webhookBody(), 'the order will stay unpaid'),
+        true,
+    ],
+    'onboarding: the signup and connect addresses are the app, not the marketing site' => [
+        [Onboarding::SIGNUP_URL, Onboarding::CONNECT_URL],
+        ['https://app.briizpay.com/register', 'https://app.briizpay.com/dashboard/integrations'],
+    ],
+    'onboarding: no em dash anywhere in the copy' => [str_contains($allCopy($onboarding([])), "\u{2014}"), false],
+    'onboarding: the admin message and the section are wired up' => [
+        [
+            str_contains(file_get_contents(__DIR__ . '/../etc/adminhtml/di.xml'), 'System\\Message\\NotConfigured'),
+            str_contains(file_get_contents(__DIR__ . '/../etc/adminhtml/system.xml'), 'Config\\Intro'),
+        ],
+        [true, true],
+    ],
+    'routing: a live key is live' => [$envFor($keyFor('live')), 'live'],
+    'routing: a sandbox key is sandbox' => [$envFor($keyFor('sandbox')), 'sandbox'],
+    'routing: a test key is test' => [$envFor($keyFor('test')), 'test'],
+    'routing: an unrecognised key is not treated as sandbox' => [$envFor('nonsense'), 'live'],
+    'routing: sandbox is accepted as a valid key' => [
+        $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('sandbox')]))->hasValidApiKey(),
+        true,
+    ],
+    'routing: an unknown segment is refused' => [
+        $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('staging')]))->hasValidApiKey(),
+        false,
+    ],
+    'routing: isTestKey means anything that is not live' => [
+        [
+            $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('live')]))->isTestKey(),
+            $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('sandbox')]))->isTestKey(),
+            $moduleConfig($scope(['payment/briizpay/api_key' => $keyFor('test')]))->isTestKey(),
+        ],
+        [false, true, true],
+    ],
+    // The client picks the host from that environment. Asserted against the
+    // shipped source because building a Client needs Magento's curl factory,
+    // and three distinct hosts is what this has to guarantee.
+    'routing: the client ships three distinct hosts' => [
+        [
+            str_contains($clientSource, "LIVE_BASE = 'https://api.briizpay.com'"),
+            str_contains($clientSource, "SANDBOX_BASE = 'https://sandbox.api.briizpay.com'"),
+            str_contains($clientSource, "TEST_BASE = 'https://dev.api.briizpay.com'"),
+        ],
+        [true, true, true],
+    ],
+    'routing: the client maps each environment to its own host' => [
+        [
+            str_contains($clientSource, "'sandbox' => self::SANDBOX_BASE"),
+            str_contains($clientSource, "'test' => self::TEST_BASE"),
+            str_contains($clientSource, 'default => self::LIVE_BASE'),
+        ],
+        [true, true, true],
+    ],
 ];
 
 $failed = 0;

@@ -5,7 +5,7 @@
             <briizpay>
                 <active>0</active>
                 <model>BriizPayFacade</model>
-                <!-- Named, not just described: an unfamiliar name at the moment of
+                <!-- Named rather than only described: an unfamiliar name at the moment of
                      paying is a reason to abandon. -->
                 <title>BriizPay - Pay by bank</title>
                 <description>Pay straight from your banking app. No card details needed.</description>
