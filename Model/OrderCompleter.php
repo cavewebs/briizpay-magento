@@ -34,7 +34,8 @@ class OrderCompleter
      */
     public function complete(Order $order, array $data, string $source): bool
     {
-        if ($order->hasInvoices() || in_array($order->getState(), [Order::STATE_PROCESSING, Order::STATE_COMPLETE, Order::STATE_CLOSED], true)) {
+        $settled = [Order::STATE_PROCESSING, Order::STATE_COMPLETE, Order::STATE_CLOSED];
+        if ($order->hasInvoices() || in_array($order->getState(), $settled, true)) {
             return false;
         }
 
@@ -51,7 +52,12 @@ class OrderCompleter
                     number_format($expected / 100, 2)
                 ));
                 $this->orders->save($order);
-                $this->logger->warning(sprintf('[BriizPay] Underpayment on order %s: %d vs %d', $order->getIncrementId(), $paid, $expected));
+                $this->logger->warning(sprintf(
+                    '[BriizPay] Underpayment on order %s: %d vs %d',
+                    $order->getIncrementId(),
+                    $paid,
+                    $expected
+                ));
                 return false;
             }
         }
@@ -78,7 +84,9 @@ class OrderCompleter
         $order->setState(Order::STATE_PROCESSING);
         $order->setStatus($order->getConfig()->getStateDefaultStatus(Order::STATE_PROCESSING));
         $order->addCommentToStatusHistory((string) __('Payment confirmed by BriizPay (%1).', $source))
-            ->setIsCustomerNotified(false);
+            // 0, not false: the interface takes an int, and this records
+            // "the customer was not emailed about this comment".
+            ->setIsCustomerNotified(0);
 
         $this->transactionFactory->create()
             ->addObject($invoice)

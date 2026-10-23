@@ -2,7 +2,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
     <system>
         <section id="payment">
-            <group id="briizpay" translate="label comment" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="briizpay" translate="label comment" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                 <label>BriizPay - Pay by bank</label>
                 <comment><![CDATA[UK Open Banking payments at checkout. Your customer approves in their own banking app and the money goes straight to your bank account. Connect your store in the BriizPay dashboard under Integrations, Magento, to get the API key and webhook signing secret below.]]></comment>
                 <!--

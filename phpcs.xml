@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<!--
+  The Magento coding standard, which is what an agency reviewing this module
+  runs before they read a line of it.
+
+  Magento2 is the full standard magento/magento-coding-standard ships. Nothing
+  is switched off wholesale: every exception below is scoped to a path and
+  carries the reason, so it reads as a decision rather than a silence.
+-->
+<ruleset name="BriizPay_PayByBank">
+    <description>Magento 2 coding standard for the BriizPay pay by bank module.</description>
+
+    <file>.</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+
+    <!--
+      PHP and templates only. The Less sniffs in the Magento standard listen
+      for CSS, and scanning CSS is deprecated in PHP_CodeSniffer 3 and gone in
+      4, so including it makes the run noisy now and broken later.
+    -->
+    <arg name="extensions" value="php,phtml,xml"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="Magento2"/>
+
+    <!--
+      Test/MagentoStubs.php holds one stand-in per Magento interface so the
+      suite can run with no Magento installed. Splitting them across eight
+      files to satisfy PSR-1 would scatter a single idea, and nothing outside
+      the tests ever loads it.
+    -->
+    <rule ref="PSR1.Classes.ClassDeclaration.MultipleClasses">
+        <exclude-pattern>Test/MagentoStubs.php</exclude-pattern>
+    </rule>
+    <!--
+      The same file: the sniff reads the `false` in interface_exists($x, false)
+      as a namespace segment. It is an argument, and the guard is what keeps
+      this file inert inside a real store.
+    -->
+    <rule ref="Magento2.NamingConvention.ReservedWords.ForbiddenAsNameSpace">
+        <exclude-pattern>Test/MagentoStubs.php</exclude-pattern>
+    </rule>
+
+    <!--
+      Static methods.
+
+      Magento discourages them because they cannot be intercepted by a plugin.
+      Every one here is pure arithmetic on values (pence conversion, the
+      discount, the receipt lines) with no store state and nothing a merchant
+      would want to intercept, and they are the parts under the heaviest test.
+      A data provider has to be static besides, and PHPUnit calls it directly.
+    -->
+    <rule ref="Magento2.Functions.StaticFunction.StaticFunction">
+        <exclude-pattern>Model/Money.php</exclude-pattern>
+        <exclude-pattern>Model/Discount.php</exclude-pattern>
+        <exclude-pattern>Model/LineItems.php</exclude-pattern>
+        <exclude-pattern>Model/DiscountCalculator.php</exclude-pattern>
+        <exclude-pattern>Model/Total/DocumentItems.php</exclude-pattern>
+        <exclude-pattern>Test/*</exclude-pattern>
+    </rule>
+
+    <!--
+      Docblocks that restate the signature.
+
+      These sniffs want @param and @return on every method. They predate typed
+      properties and return types, which this module uses everywhere: a
+      `@param float $amount` above `toMinor(float $amount): int` adds nothing a
+      reader did not just read, and the house style here is that a comment
+      explains why rather than what. Class-level docblocks carry the reasoning,
+      and the methods that need a note have one.
+
+      This is the one place the module knowingly departs from the standard. If
+      an agency's own gate disagrees, deleting these three lines and running
+      phpcbf is the whole change.
+    -->
+    <rule ref="Magento2.Annotation.MethodAnnotationStructure">
+        <severity>0</severity>
+    </rule>
+    <rule ref="Magento2.Annotation.MethodArguments">
+        <severity>0</severity>
+    </rule>
+    <rule ref="Magento2.Commenting.ClassPropertyPHPDocFormatting">
+        <severity>0</severity>
+    </rule>
+
+    <!--
+      Line length in XML.
+
+      Magento's own configuration carries fully qualified class names and
+      sentences of merchant-facing help text in single attributes, neither of
+      which wraps into something more readable. Still enforced in PHP, where
+      it means something.
+    -->
+    <rule ref="Generic.Files.LineLength">
+        <exclude-pattern>*.xml</exclude-pattern>
+    </rule>
+</ruleset>

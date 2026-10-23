@@ -1,0 +1,42 @@
+<?php
+/**
+ * The introduction at the top of the BriizPay configuration section.
+ *
+ * @var \BriizPay\PayByBank\Block\Adminhtml\System\Config\Intro $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$onboarding = $block->getOnboarding();
+?>
+<div class="briizpay-intro message message-notice">
+    <h3 class="briizpay-intro__headline"><?= $escaper->escapeHtml($onboarding->headline()) ?></h3>
+    <p><?= $escaper->escapeHtml($onboarding->summary()) ?></p>
+
+    <p><strong><?= $escaper->escapeHtml(__('What your store gains')) ?></strong></p>
+    <ul class="briizpay-intro__list">
+        <?php foreach ($onboarding->benefits() as $benefit): ?>
+            <li><?= $escaper->escapeHtml($benefit) ?></li>
+        <?php endforeach; ?>
+    </ul>
+
+    <p><strong><?= $escaper->escapeHtml(__('What your customer does')) ?></strong></p>
+    <p><?= $escaper->escapeHtml($onboarding->customerExperience()) ?></p>
+
+    <p><strong><?= $escaper->escapeHtml(__('To start taking payments')) ?></strong></p>
+    <ol class="briizpay-intro__steps">
+        <?php foreach ($onboarding->steps() as $step): ?>
+            <li><?= $escaper->escapeHtml($step) ?></li>
+        <?php endforeach; ?>
+    </ol>
+
+    <p class="briizpay-intro__actions">
+        <a href="<?= $escaper->escapeUrl($block->getSignupUrl()) ?>"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="action-default scalable"><?= $escaper->escapeHtml(__('Create a BriizPay account')) ?></a>
+        <a href="<?= $escaper->escapeUrl($block->getConnectUrl()) ?>"
+           target="_blank"
+           rel="noopener noreferrer"><?= $escaper->escapeHtml(__('I have an account, connect this store')) ?></a>
+    </p>
+
+    <p class="briizpay-intro__footnote"><?= $escaper->escapeHtml($onboarding->footnote()) ?></p>
+</div>

@@ -77,13 +77,25 @@ class PayByBankDiscount extends AbstractTotal
         }
         return [
             'code' => $this->getCode(),
-            'title' => __(Discount::LABEL),
+            'title' => __('Pay by bank discount'),
             'value' => $amount,
         ];
     }
 
-    public function getLabel()
+    /**
+     * The line's label.
+     *
+     * Cast, because AbstractTotal::getLabel() is typed string and a Phrase is
+     * not one. It resolves in the current locale, which for a quote being
+     * collected is the shopper's.
+     */
+    public function getLabel(): string
     {
-        return __(Discount::LABEL);
+        // The literal, not Discount::LABEL. Magento's translation extractor
+        // reads the source for __('...') and cannot follow a constant, so the
+        // constant form shipped a customer-facing label that no store could
+        // ever translate. The constant stays for comparisons; the words live
+        // here, where the extractor can find them.
+        return (string) __('Pay by bank discount');
     }
 }

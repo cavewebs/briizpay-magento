@@ -77,7 +77,10 @@ class Back implements HttpGetActionInterface
                 $data = $this->client->getPaymentRequest($requestId, (int) $order->getStoreId());
                 $status = (string) ($data['status'] ?? '');
             } catch (\Throwable $e) {
-                $this->logger->warning('[BriizPay] Status check failed for order ' . $order->getIncrementId() . ': ' . $e->getMessage());
+                $this->logger->warning(
+                    '[BriizPay] Status check failed for order '
+                    . $order->getIncrementId() . ': ' . $e->getMessage()
+                );
             }
         }
 
@@ -89,15 +92,21 @@ class Back implements HttpGetActionInterface
         if ($status === 'CANCELLED' || $status === 'EXPIRED') {
             if ($order->canCancel()) {
                 $order->cancel();
-                $order->addCommentToStatusHistory((string) __('BriizPay payment was not completed (%1).', strtolower($status)));
+                $order->addCommentToStatusHistory(
+                    (string) __('BriizPay payment was not completed (%1).', strtolower($status))
+                );
                 $order->save();
             }
             $this->checkoutSession->restoreQuote();
-            $this->messages->addErrorMessage(__('Your payment was not completed. Your basket is still here, so you can try again or choose another way to pay.'));
+            // phpcs:ignore Generic.Files.LineLength -- a translatable string is one literal; concatenating it hides it from i18n:collect-phrases
+            $message = __('Your payment was not completed. Your basket is still here, so you can try again or choose another way to pay.');
+            $this->messages->addErrorMessage($message);
             return $redirect->setPath('checkout/cart');
         }
 
-        $this->messages->addNoticeMessage(__('We are waiting for your bank to confirm the payment. Your order will update as soon as it does.'));
+        // phpcs:ignore Generic.Files.LineLength -- a translatable string is one literal; concatenating it hides it from i18n:collect-phrases
+        $notice = __('We are waiting for your bank to confirm the payment. Your order will update as soon as it does.');
+        $this->messages->addNoticeMessage($notice);
         return $redirect->setPath('checkout/onepage/success');
     }
 }

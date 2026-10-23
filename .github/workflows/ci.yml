@@ -1,0 +1,82 @@
+name: CI
+
+# Every push and every pull request. A module an agency installs for their
+# clients has to be able to show that it was checked, not asserted to be fine.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Every version composer.json claims. Magento 2.4.6 runs on 8.1 and
+      # 2.4.9 on 8.4, so a store on any of them is covered by a real run
+      # rather than by a version range nobody tested.
+      matrix:
+        php: ['8.1', '8.2', '8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      # magento/framework needs repo.magento.com credentials, which a
+      # repository cannot hold. The suite does not need it: Test/MagentoStubs
+      # stands in for the handful of interfaces the module touches, and every
+      # declaration there is guarded so the same tests run unchanged inside a
+      # store via `bin/magento dev:tests:run unit`.
+      - name: Install test tooling only
+        run: |
+          composer require --no-interaction --no-progress --dev \
+            phpunit/phpunit:^9.6 \
+            magento/magento-coding-standard:^31.0 \
+            --no-plugins --ignore-platform-req=php
+
+      - name: Unit tests
+        run: vendor/bin/phpunit --configuration phpunit.xml.dist
+
+  coding-standard:
+    name: Magento coding standard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install the standard
+        run: |
+          composer require --no-interaction --no-progress --dev \
+            magento/magento-coding-standard:^31.0 \
+            --ignore-platform-req=php
+          composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+
+      # Errors fail the build. The ruleset in phpcs.xml names every exception
+      # and why, so a reviewer can disagree with a decision rather than guess
+      # at a silence.
+      - name: phpcs
+        run: vendor/bin/phpcs --standard=phpcs.xml .
+
+  # PHPStan is deliberately not here.
+  #
+  # It resolves types, so it needs Magento's actual classes, and those come
+  # from repo.magento.com. Running it against the stubs would report that
+  # every Magento class is missing, which is noise rather than analysis.
+  # It runs in a store instead, and README.md says how.

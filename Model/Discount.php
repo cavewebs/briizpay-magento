@@ -15,6 +15,8 @@ namespace BriizPay\PayByBank\Model;
  * same cases as the WooCommerce plugin's tests/test-discount.php. The two
  * plugins promise merchants the same discount, so they work it out the same
  * way.
+ *
+ * @api
  */
 class Discount
 {
@@ -54,8 +56,12 @@ class Discount
      * @param float|int|string $amount Percent, or pounds for a fixed discount.
      * @param int $decimals Currency precision.
      */
-    public static function compute(float|int|string $basis, string $type, float|int|string $amount, int $decimals = 2): float
-    {
+    public static function compute(
+        float|int|string $basis,
+        string $type,
+        float|int|string $amount,
+        int $decimals = 2
+    ): float {
         $basis = (float) $basis;
         $amount = (float) $amount;
         if ($basis <= 0 || $amount <= 0) {
@@ -81,8 +87,14 @@ class Discount
      * @param float $part The document's items, after discounts, with tax.
      * @param float $whole The order's items, on the same terms.
      */
-    public static function share(float $orderAmount, float $alreadyTaken, bool $isLast, float $part, float $whole, int $decimals = 2): float
-    {
+    public static function share(
+        float $orderAmount,
+        float $alreadyTaken,
+        bool $isLast,
+        float $part,
+        float $whole,
+        int $decimals = 2
+    ): float {
         $left = round($orderAmount - $alreadyTaken, $decimals);
         if ($left <= 0) {
             return 0.0;

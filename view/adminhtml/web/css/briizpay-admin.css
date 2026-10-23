@@ -1,0 +1,42 @@
+/*
+ * The admin panels' own styles.
+ *
+ * Here rather than inline on each element so a theme can override them and so
+ * the markup stays readable. The message and action-default classes come from
+ * the admin's own library, which is why there is so little of this: the panel
+ * is a standard admin notice and should look like one.
+ */
+.briizpay-intro__cell {
+    padding: 0 0 18px;
+}
+
+.briizpay-intro {
+    max-width: 900px;
+}
+
+.briizpay-intro__headline {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.briizpay-intro__list,
+.briizpay-intro__steps {
+    margin: 0 0 12px 20px;
+}
+
+.briizpay-intro__list {
+    list-style: disc;
+}
+
+.briizpay-intro__steps {
+    list-style: decimal;
+}
+
+.briizpay-intro__actions {
+    margin: 0 0 12px;
+}
+
+.briizpay-intro__footnote {
+    margin: 0;
+    color: #666;
+}

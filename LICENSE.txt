@@ -1,0 +1,19 @@
+Open Software License version 3.0
+
+This Original Work is licensed under the Open Software License version 3.0
+(OSL-3.0). The full, canonical text is published by the Open Source Initiative
+at https://opensource.org/license/osl-3-0-php and is incorporated here by
+reference.
+
+OSL-3.0 is the licence Magento Open Source itself uses, which is why this
+module uses it: a store already running Magento is already bound by the same
+terms, so nothing here adds a licensing decision for a merchant to make.
+
+Copyright (c) 2026 JETIPAY UK LTD (trading as BriizPay)
+
+Licensed under the Open Software License version 3.0 (the "Licence"). You may
+not use this file except in compliance with the Licence. Unless required by
+applicable law or agreed to in writing, software distributed under the Licence
+is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the Licence for the specific language
+governing permissions and limitations under the Licence.

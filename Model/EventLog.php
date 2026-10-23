@@ -47,7 +47,10 @@ class EventLog
                 return true;
             }
             $message = $cause->getMessage();
-            if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry') || (string) $cause->getCode() === '23000') {
+            if (str_contains($message, '1062')
+                || str_contains($message, 'Duplicate entry')
+                || (string) $cause->getCode() === '23000'
+            ) {
                 return true;
             }
         }

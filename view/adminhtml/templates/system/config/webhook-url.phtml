@@ -1,0 +1,9 @@
+<?php
+/**
+ * The store's webhook URL, to check against rather than to edit.
+ *
+ * @var \BriizPay\PayByBank\Block\Adminhtml\System\Config\WebhookUrl $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<code class="briizpay-webhook-url"><?= $escaper->escapeHtml($block->getWebhookUrl()) ?></code>

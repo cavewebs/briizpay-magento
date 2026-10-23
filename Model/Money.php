@@ -9,6 +9,8 @@ namespace BriizPay\PayByBank\Model;
  * The API takes whole pence. A float total like 19.99 is 1998.9999... in
  * binary, so it is rounded, never truncated, or an order would be requested a
  * penny short and then held as an underpayment when it was paid in full.
+ *
+ * @api
  */
 class Money
 {

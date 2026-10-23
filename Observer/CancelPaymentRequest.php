@@ -48,8 +48,14 @@ class CancelPaymentRequest implements ObserverInterface
             $this->client->cancelPaymentRequest($requestId, (int) $order->getStoreId());
             $order->addCommentToStatusHistory((string) __('BriizPay payment link cancelled.'));
         } catch (\Throwable $e) {
-            $this->logger->warning('[BriizPay] Could not cancel payment link for order ' . $order->getIncrementId() . ': ' . $e->getMessage());
-            $order->addCommentToStatusHistory((string) __('BriizPay could not cancel the payment link (%1). It may still be payable.', $e->getMessage()));
+            $this->logger->warning(
+                '[BriizPay] Could not cancel payment link for order '
+                . $order->getIncrementId() . ': ' . $e->getMessage()
+            );
+            $order->addCommentToStatusHistory((string) __(
+                'BriizPay could not cancel the payment link (%1). It may still be payable.',
+                $e->getMessage()
+            ));
         }
     }
 }

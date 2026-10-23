@@ -13,9 +13,12 @@ use Magento\Framework\Data\Form\Element\AbstractElement;
  *
  * Connecting in the BriizPay dashboard fills this in from the store address, so
  * it is here to check against, not to edit.
+ *
+ * @api
  */
 class WebhookUrl extends Field
 {
+    /** @param array<string, mixed> $data Magento's block arguments, passed through untouched. */
     public function __construct(
         Context $context,
         private readonly Config $config,
@@ -24,8 +27,14 @@ class WebhookUrl extends Field
         parent::__construct($context, $data);
     }
 
+    public function getWebhookUrl(): string
+    {
+        return $this->config->getWebhookUrl();
+    }
+
     protected function _getElementHtml(AbstractElement $element): string
     {
-        return '<code>' . $this->escapeHtml($this->config->getWebhookUrl()) . '</code>';
+        $this->setTemplate('BriizPay_PayByBank::system/config/webhook-url.phtml');
+        return $this->_toHtml();
     }
 }

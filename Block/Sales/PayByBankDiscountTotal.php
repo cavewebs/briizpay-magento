@@ -36,7 +36,7 @@ class PayByBankDiscountTotal extends AbstractBlock
         // read together, otherwise straight after the subtotal.
         $parent->addTotal(new DataObject([
             'code' => Discount::TOTAL_CODE,
-            'label' => __(Discount::LABEL),
+            'label' => __('Pay by bank discount'),
             'value' => $amount,
             'base_value' => (float) $source->getData(Discount::BASE_FIELD),
         ]), $parent->getTotal('discount') ? 'discount' : 'subtotal');

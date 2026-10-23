@@ -17,6 +17,8 @@ use Psr\Log\LoggerInterface;
  *
  * Failures are turned into ApiException with a message fit for a shopper; the
  * real response goes to the log.
+ *
+ * @api
  */
 class Client
 {
@@ -56,7 +58,12 @@ class Client
      */
     public function cancelPaymentRequest(string $id, ?int $storeId = null): array
     {
-        return $this->request('POST', '/v1/payment-requests/' . rawurlencode($id) . '/cancel', new \stdClass(), $storeId);
+        return $this->request(
+            'POST',
+            '/v1/payment-requests/' . rawurlencode($id) . '/cancel',
+            new \stdClass(),
+            $storeId
+        );
     }
 
     /**

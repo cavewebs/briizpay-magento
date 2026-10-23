@@ -52,7 +52,10 @@ class Redirect implements HttpGetActionInterface
         } catch (LocalizedException $e) {
             $message = $e->getMessage();
         } catch (\Throwable $e) {
-            $this->logger->error('[BriizPay] Could not start payment for order ' . $order->getIncrementId() . ': ' . $e->getMessage());
+            $this->logger->error(
+                '[BriizPay] Could not start payment for order '
+                . $order->getIncrementId() . ': ' . $e->getMessage()
+            );
             $message = (string) __('BriizPay could not take this payment right now.');
         }
 
@@ -64,7 +67,10 @@ class Redirect implements HttpGetActionInterface
             $order->save();
         }
         $this->checkoutSession->restoreQuote();
-        $this->messages->addErrorMessage(__('%1 Your basket is still here, so you can try again or choose another way to pay.', $message));
+        $this->messages->addErrorMessage(__(
+            '%1 Your basket is still here, so you can try again or choose another way to pay.',
+            $message
+        ));
 
         return $redirect->setPath('checkout/cart');
     }

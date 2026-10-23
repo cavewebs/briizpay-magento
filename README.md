@@ -149,6 +149,8 @@ and it is the first thing a new merchant reads about the product.
 
 ## Changelog
 
+The full history is in [CHANGELOG.md](CHANGELOG.md). The highlights:
+
 - **1.2.0**: Routes to the right BriizPay from the key alone: `bzp_sk_sandbox_`
   keys now reach the BriizPay sandbox, where a store can place a test order
   before going live. Live keys are unaffected, and existing `bzp_sk_test_` keys
@@ -170,15 +172,75 @@ and it is the first thing a new merchant reads about the product.
 - Refunds from the Magento credit memo screen. Refund from the BriizPay dashboard.
 - Hyva or other non-Luma checkouts, which need their own payment renderer.
 
-## Tests
+## Checks
+
+Three gates, all runnable by anyone with the repository.
 
 ```bash
-php Test/run.php
+composer test      # PHPUnit, 113 tests
+composer phpcs     # the Magento coding standard
+composer phpstan   # static analysis at level 6 (needs a store, see below)
 ```
 
-Pins the webhook signature against a vector produced by the API's own signing
-code, pence conversion, the receipt lines, and the pay by bank discount's
-arithmetic, with the same cases as the WooCommerce plugin's tests, and the
-bank logos: the setting's default and admin field, what the checkout is given,
-the decorative markup and the shipped images. The rest is
-exercised end to end against a Mage-OS testbed and the BriizPay test environment.
+### Tests
+
+`Test/Unit` is an ordinary PHPUnit suite. Inside a store it runs the way every
+other module's does:
+
+```bash
+bin/magento dev:tests:run unit
+```
+
+Standalone, with no Magento installed, it runs too. `magento/framework` needs
+repo.magento.com credentials that a repository cannot hold, so
+`Test/MagentoStubs.php` stands in for the handful of interfaces the module
+touches. Every declaration there is guarded by `interface_exists`, so in a real
+store the file declares nothing and the same tests run against the real
+framework. That is what lets CI check every push.
+
+What they cover: the webhook signature against a vector produced by the API's
+own signing code, pence conversion, the receipt lines, the pay by bank discount
+(the same cases as the WooCommerce plugin's, so both give a customer the same
+saving), the environment a key routes to, the first-run copy including the
+claims it may not make, and the shipped files, from the config default to the
+size of the bank logos. The rest is exercised end to end against a Mage-OS
+testbed and the BriizPay test environment.
+
+### Coding standard
+
+`phpcs.xml` is the full `Magento2` standard. It passes with no errors and no
+warnings.
+
+Four things are excluded, each scoped and with its reason in the file: docblocks
+that would restate a typed signature, line length in XML, static methods on the
+pure-arithmetic helpers, and two sniffs that misread the test stubs. They are
+written as decisions rather than silences, so disagreeing with one is a
+three-line change.
+
+### Static analysis
+
+PHPStan at level 6, with no errors.
+
+It is not in CI, because resolving types needs Magento's real classes and those
+need credentials. Run it in a store:
+
+```bash
+vendor/bin/phpstan analyse -c app/code/BriizPay/PayByBank/phpstan.neon.dist
+```
+
+The ignore list in `phpstan.neon.dist` is Magento's own shape, not this
+module's: places where the framework's runtime and its type declarations
+disagree, and the module follows the runtime because that is what a store
+executes. Installing `bitexpert/phpstan-magento` removes the need for most of
+them.
+
+## Translations
+
+Every string the module shows is in `i18n/en_US.csv`, and a test fails if one
+is added without an entry.
+
+A string passed to `__()` has to be a literal. Magento's extractor reads the
+source, so `__($variable)` and `__('a' . 'b')` are both invisible to it and
+ship untranslatable. That is not hypothetical here: the discount label and the
+whole first-run introduction were written that way and reached a merchant's
+screen in English whatever their locale.
