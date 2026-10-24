@@ -51,6 +51,22 @@ class Client
     }
 
     /**
+     * Tell BriizPay the store has refunded an order.
+     *
+     * Records a refund against the payment. It does not move money on its own:
+     * what happens depends on the rail, and the response says which, which is
+     * what the order comment repeats. See briizpay-api
+     * docs/decisions/refunds.md.
+     *
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    public function createRefund(array $body, ?int $storeId = null): array
+    {
+        return $this->request('POST', '/v1/refunds', $body, $storeId);
+    }
+
+    /**
      * Stop a payment being payable, so a customer who wanders back to a stale
      * link cannot pay for an order the store has dropped.
      *

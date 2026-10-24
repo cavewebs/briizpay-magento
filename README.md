@@ -169,7 +169,12 @@ The full history is in [CHANGELOG.md](CHANGELOG.md). The highlights:
 
 ## What it does not do yet
 
-- Refunds from the Magento credit memo screen. Refund from the BriizPay dashboard.
+- Processing a refund from Magento. `can_refund` is 0 on purpose: an online
+  Refund button would move no money on the Open Banking rail while telling the
+  admin it had. Raise a credit memo as usual and the module reports it to
+  BriizPay, which records the refund against the payment and tells you in an
+  order comment whether the money moves on its own or you send it from your
+  bank.
 - Hyva or other non-Luma checkouts, which need their own payment renderer.
 
 ## Checks

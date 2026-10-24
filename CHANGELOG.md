@@ -45,6 +45,12 @@ merge, then tag `vX.Y.Z` on that commit.
   the whole first-run introduction were shipping in English whatever the
   store's locale. A test now fails if a string is added without an entry.
 
+- Refunds are reported to BriizPay. A credit memo raised in the store's own
+  screen now tells BriizPay, which records the refund against the payment so
+  the two sets of books agree. The module still does not process refunds and
+  `can_refund` stays 0: an online Refund button would move no money on the
+  Open Banking rail while telling the admin it had.
+
 ### Not done, and why
 
 - **A per-module ACL resource.** `<resource>` is valid on a `<section>`, and

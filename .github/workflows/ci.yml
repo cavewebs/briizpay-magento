@@ -1,7 +1,7 @@
 name: CI
 
 # Every push and every pull request. A module an agency installs for their
-# clients has to be able to show that it was checked, not asserted to be fine.
+# clients has to be able to show that it was checked, not assert it.
 on:
   push:
     branches: [main]
@@ -9,6 +9,22 @@ on:
 
 permissions:
   contents: read
+
+# The tools are installed into their own directory, never with
+# `composer require --dev` here.
+#
+# This module's composer.json requires magento/framework and seven magento/*
+# modules, and resolving those needs repo.magento.com credentials a public
+# repository cannot hold. `composer require` resolves the whole manifest, so it
+# fails on the Magento packages before it ever reaches PHPUnit. A composer
+# project of its own has nothing to resolve but the tools.
+#
+# The suite does not need Magento: Test/MagentoStubs stands in for the
+# interfaces the module touches, and every declaration there is guarded, so
+# inside a store the file declares nothing and the same tests run against the
+# real framework via `bin/magento dev:tests:run unit`.
+env:
+  TOOLS_DIR: /tmp/briizpay-ci-tools
 
 jobs:
   tests:
@@ -32,20 +48,15 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      # magento/framework needs repo.magento.com credentials, which a
-      # repository cannot hold. The suite does not need it: Test/MagentoStubs
-      # stands in for the handful of interfaces the module touches, and every
-      # declaration there is guarded so the same tests run unchanged inside a
-      # store via `bin/magento dev:tests:run unit`.
-      - name: Install test tooling only
+      - name: Install PHPUnit
         run: |
-          composer require --no-interaction --no-progress --dev \
-            phpunit/phpunit:^9.6 \
-            magento/magento-coding-standard:^31.0 \
-            --no-plugins --ignore-platform-req=php
+          mkdir -p "$TOOLS_DIR"
+          cd "$TOOLS_DIR"
+          composer init --no-interaction --name=briizpay/ci-tools
+          composer require --no-interaction --no-progress phpunit/phpunit:^9.6
 
       - name: Unit tests
-        run: vendor/bin/phpunit --configuration phpunit.xml.dist
+        run: "$TOOLS_DIR/vendor/bin/phpunit --configuration phpunit.xml.dist"
 
   coding-standard:
     name: Magento coding standard
@@ -63,20 +74,28 @@ jobs:
 
       - name: Install the standard
         run: |
-          composer require --no-interaction --no-progress --dev \
-            magento/magento-coding-standard:^31.0 \
-            --ignore-platform-req=php
+          mkdir -p "$TOOLS_DIR"
+          cd "$TOOLS_DIR"
+          composer init --no-interaction --name=briizpay/ci-tools
           composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer require --no-interaction --no-progress magento/magento-coding-standard:^31.0
+          # What the dealerdirect plugin would do, done explicitly. The plugin
+          # is not trusted to have run, and the Magento standard extends
+          # PHPCompatibility, so phpcs fatals on a missing sniff class without
+          # both paths registered.
+          ./vendor/bin/phpcs --config-set installed_paths \
+            "$TOOLS_DIR/vendor/magento/magento-coding-standard,$TOOLS_DIR/vendor/phpcompatibility/php-compatibility"
+          ./vendor/bin/phpcs -i
 
       # Errors fail the build. The ruleset in phpcs.xml names every exception
       # and why, so a reviewer can disagree with a decision rather than guess
       # at a silence.
       - name: phpcs
-        run: vendor/bin/phpcs --standard=phpcs.xml .
+        run: "$TOOLS_DIR/vendor/bin/phpcs --standard=phpcs.xml ."
 
   # PHPStan is deliberately not here.
   #
-  # It resolves types, so it needs Magento's actual classes, and those come
-  # from repo.magento.com. Running it against the stubs would report that
-  # every Magento class is missing, which is noise rather than analysis.
-  # It runs in a store instead, and README.md says how.
+  # It resolves types, so it needs Magento's real classes rather than the test
+  # stubs. Running it against the stubs would report that every Magento class
+  # is missing, which is noise rather than analysis. It runs in a store
+  # instead, and README.md gives the command.
