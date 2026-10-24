@@ -15,6 +15,8 @@ use Magento\Sales\Model\Order;
  * any difference between the order's lines and its grand total is sent as a
  * line of its own (see build()), and the lines always agree with what the
  * customer pays.
+ *
+ * @api
  */
 class LineItems
 {
@@ -97,7 +99,13 @@ class LineItems
         foreach ($amounts as $label => $value) {
             $amount = Money::toMinor(abs((float) $value));
             if ($amount > 0) {
-                $rows[] = ['name' => self::label((string) $label), 'quantity' => 1, 'gross' => -$amount, 'taxRateBps' => 0, 'sku' => ''];
+                $rows[] = [
+                    'name' => self::label((string) $label),
+                    'quantity' => 1,
+                    'gross' => -$amount,
+                    'taxRateBps' => 0,
+                    'sku' => '',
+                ];
             }
         }
         return $rows;
@@ -217,6 +225,12 @@ class LineItems
 
     private static function cleanName(string $name): string
     {
+        // Magento discourages html_entity_decode in favour of the Escaper,
+        // which escapes for output. This does the opposite on purpose: a
+        // product name arrives already escaped for a web page and is going
+        // into a bank's payment narrative, where "Fish &amp; chips" is what
+        // the customer would read on their statement.
+        // phpcs:ignore Magento2.Functions.DiscouragedFunction
         $name = trim(html_entity_decode(strip_tags($name), ENT_QUOTES, 'UTF-8'));
         return mb_substr($name !== '' ? $name : 'Item', 0, 140);
     }

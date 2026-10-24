@@ -1,0 +1,101 @@
+name: CI
+
+# Every push and every pull request. A module an agency installs for their
+# clients has to be able to show that it was checked, not assert it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# The tools are installed into their own directory, never with
+# `composer require --dev` here.
+#
+# This module's composer.json requires magento/framework and seven magento/*
+# modules, and resolving those needs repo.magento.com credentials a public
+# repository cannot hold. `composer require` resolves the whole manifest, so it
+# fails on the Magento packages before it ever reaches PHPUnit. A composer
+# project of its own has nothing to resolve but the tools.
+#
+# The suite does not need Magento: Test/MagentoStubs stands in for the
+# interfaces the module touches, and every declaration there is guarded, so
+# inside a store the file declares nothing and the same tests run against the
+# real framework via `bin/magento dev:tests:run unit`.
+env:
+  TOOLS_DIR: /tmp/briizpay-ci-tools
+
+jobs:
+  tests:
+    name: Tests on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Every version composer.json claims. Magento 2.4.6 runs on 8.1 and
+      # 2.4.9 on 8.4, so a store on any of them is covered by a real run
+      # rather than by a version range nobody tested.
+      matrix:
+        php: ['8.1', '8.2', '8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Install PHPUnit
+        run: |
+          mkdir -p "$TOOLS_DIR"
+          cd "$TOOLS_DIR"
+          composer init --no-interaction --name=briizpay/ci-tools
+          composer require --no-interaction --no-progress phpunit/phpunit:^9.6
+
+      - name: Unit tests
+        run: "$TOOLS_DIR/vendor/bin/phpunit --configuration phpunit.xml.dist"
+
+  coding-standard:
+    name: Magento coding standard
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install the standard
+        run: |
+          mkdir -p "$TOOLS_DIR"
+          cd "$TOOLS_DIR"
+          composer init --no-interaction --name=briizpay/ci-tools
+          composer config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer require --no-interaction --no-progress magento/magento-coding-standard:^31.0
+          # What the dealerdirect plugin would do, done explicitly. The plugin
+          # is not trusted to have run, and the Magento standard extends
+          # PHPCompatibility, so phpcs fatals on a missing sniff class without
+          # both paths registered.
+          ./vendor/bin/phpcs --config-set installed_paths \
+            "$TOOLS_DIR/vendor/magento/magento-coding-standard,$TOOLS_DIR/vendor/phpcompatibility/php-compatibility"
+          ./vendor/bin/phpcs -i
+
+      # Errors fail the build. The ruleset in phpcs.xml names every exception
+      # and why, so a reviewer can disagree with a decision rather than guess
+      # at a silence.
+      - name: phpcs
+        run: "$TOOLS_DIR/vendor/bin/phpcs --standard=phpcs.xml ."
+
+  # PHPStan is deliberately not here.
+  #
+  # It resolves types, so it needs Magento's real classes rather than the test
+  # stubs. Running it against the stubs would report that every Magento class
+  # is missing, which is noise rather than analysis. It runs in a store
+  # instead, and README.md gives the command.

@@ -26,7 +26,11 @@ class DiscountAmount extends Value
         // The type is saved in the same form post; the saved value is only the
         // fallback when this field is saved on its own.
         $type = (string) ($this->getFieldsetDataValue('discount_type')
-            ?? $this->_config->getValue('payment/briizpay/discount_type', $this->getScope() ?: 'default', $this->getScopeCode()));
+            ?? $this->_config->getValue(
+                'payment/briizpay/discount_type',
+                $this->getScope() ?: 'default',
+                $this->getScopeCode()
+            ));
         if ($type !== Discount::TYPE_FIXED && (float) $value > 100) {
             throw new LocalizedException(__('A percentage discount cannot be more than 100.'));
         }

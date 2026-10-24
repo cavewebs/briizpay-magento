@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BriizPay\PayByBank\Model;
 
 use Magento\Quote\Model\Quote;
+use Magento\Quote\Api\Data\CartItemInterface;
 use Magento\Quote\Model\Quote\Item\AbstractItem;
 
 /**
@@ -12,6 +13,8 @@ use Magento\Quote\Model\Quote\Item\AbstractItem;
  * One place for the question, so the totals collector that applies the
  * discount, the guard that checks it before an order is placed and the saving
  * shown next to the method name at checkout can never disagree.
+ *
+ * @api
  */
 class DiscountCalculator
 {
@@ -46,7 +49,11 @@ class DiscountCalculator
      * The discount this basket gets: the offer when the quote's payment method
      * is BriizPay, nothing otherwise.
      *
-     * @param iterable<AbstractItem> $items
+     * Magento hands these over as CartItemInterface from a shipping
+     * assignment and as AbstractItem from an address, and they are the same
+     * objects either way. Both are named so neither call site has to cast.
+     *
+     * @param iterable<AbstractItem|CartItemInterface> $items
      * @return array{0: float, 1: float}
      */
     public function amountFor(Quote $quote, iterable $items): array

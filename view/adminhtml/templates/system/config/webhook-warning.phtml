@@ -1,0 +1,17 @@
+<?php
+/**
+ * Shown when a store is connected but has no webhook signing secret.
+ *
+ * message-warning, not message-notice: this configuration takes a customer's
+ * money and leaves the order unpaid, and nothing at the checkout looks wrong
+ * while it happens.
+ *
+ * @var \BriizPay\PayByBank\Block\Adminhtml\System\Config\Intro $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$onboarding = $block->getOnboarding();
+?>
+<div class="briizpay-intro message message-warning">
+    <p><strong><?= $escaper->escapeHtml($onboarding->webhookHeading()) ?></strong></p>
+    <p><?= $escaper->escapeHtml($onboarding->webhookBody()) ?></p>
+</div>

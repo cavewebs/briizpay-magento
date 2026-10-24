@@ -15,6 +15,8 @@ use Magento\Store\Model\ScopeInterface;
  * set with `bin/magento config:set` is stored as typed, so a value that already
  * looks like a key or a secret is used as it is rather than decrypted into
  * nonsense.
+ *
+ * @api
  */
 class Config
 {
@@ -107,14 +109,22 @@ class Config
     /** 'percent' or 'fixed'. Anything else is read as a percentage, as Discount::compute() does. */
     public function getDiscountType(?int $storeId = null): string
     {
-        $type = (string) $this->scopeConfig->getValue(self::PATH . 'discount_type', ScopeInterface::SCOPE_STORE, $storeId);
+        $type = (string) $this->scopeConfig->getValue(
+            self::PATH . 'discount_type',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
         return $type === Discount::TYPE_FIXED ? Discount::TYPE_FIXED : Discount::TYPE_PERCENT;
     }
 
     /** Percent, or pounds for a fixed discount. Never negative. */
     public function getDiscountAmount(?int $storeId = null): float
     {
-        return max(0.0, (float) $this->scopeConfig->getValue(self::PATH . 'discount_amount', ScopeInterface::SCOPE_STORE, $storeId));
+        return max(0.0, (float) $this->scopeConfig->getValue(
+            self::PATH . 'discount_amount',
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        ));
     }
 
     /** Where BriizPay sends payment notifications for this store. */

@@ -15,6 +15,8 @@ namespace BriizPay\PayByBank\Model;
  * every store silently rejecting every payment notification.
  *
  * No Magento dependencies on purpose, so it runs in a plain unit test.
+ *
+ * @api
  */
 class Signature
 {

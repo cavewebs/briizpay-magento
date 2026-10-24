@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The module's unit tests.
+
+  Deliberately minimal. This module supports Magento 2.4.6 to 2.4.9, which
+  ships PHPUnit 9 through 12, and the schema changed between them: the
+  convertXToExceptions attributes and the <coverage> element were removed in
+  PHPUnit 10. Only what every version in that range accepts is here, so one
+  config file works wherever a store runs it.
+
+  Named .dist so a developer can drop a phpunit.xml beside it without touching
+  what is committed.
+-->
+<phpunit bootstrap="Test/bootstrap.php"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true"
+         beStrictAboutTestsThatDoNotTestAnything="true">
+    <testsuites>
+        <testsuite name="BriizPay_PayByBank unit">
+            <directory>Test/Unit</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

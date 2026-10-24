@@ -15,6 +15,8 @@ use Magento\Store\Model\StoreManagerInterface;
  * What the checkout's JavaScript needs: the line under the method name, the
  * bank logos beside it, where to go once the order is placed, and whether choosing
  * the method changes the price.
+ *
+ * @api
  */
 class ConfigProvider implements ConfigProviderInterface
 {

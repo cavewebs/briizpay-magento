@@ -99,7 +99,10 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             // Released so BriizPay's retry is applied rather than skipped as a
             // duplicate of an event that never took effect.
             $this->events->release($eventId);
-            $this->logger->error('[BriizPay] Could not complete order ' . $order->getIncrementId() . ': ' . $e->getMessage());
+            $this->logger->error(
+                '[BriizPay] Could not complete order '
+                . $order->getIncrementId() . ': ' . $e->getMessage()
+            );
             return $result->setHttpResponseCode(500)->setData(['error' => 'could not complete order']);
         }
 

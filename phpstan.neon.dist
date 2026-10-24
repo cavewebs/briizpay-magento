@@ -1,0 +1,69 @@
+# Static analysis for the module.
+#
+# Run inside a store, where Magento's classes exist:
+#   vendor/bin/phpstan analyse -c app/code/BriizPay/PayByBank/phpstan.neon.dist
+#
+# Level 6 is the practical ceiling for extension code. The framework's own
+# annotations stop short of generics, so level 7 and above spend their time
+# reporting Magento's types rather than ours. Raise it when the framework does.
+parameters:
+    level: 6
+    paths:
+        - Block
+        - Controller
+        - Gateway
+        - Model
+        - Observer
+        - Plugin
+    excludePaths:
+        analyse:
+            - Test/MagentoStubs.php
+    treatPhpDocTypesAsCertain: false
+
+    # Magento's own shape, not this module's.
+    #
+    # Every pattern below is a place where Magento's runtime and its type
+    # declarations disagree, and the module follows the runtime because that is
+    # what a store executes. bitexpert/phpstan-magento, a require-dev here,
+    # teaches PHPStan most of this; these keep the run clean in a store that
+    # has not installed it, which is every store.
+    #
+    # Each is narrow on purpose. A pattern broad enough to hide a real mistake
+    # in this module would defeat the point of running the analysis at all.
+    ignoreErrors:
+        # DataObject's __call magic: Magento's models expose their data as
+        # getX()/setX() that no interface declares. Scoped to the specific
+        # classes the module touches.
+        -
+            message: '#Call to an undefined method Magento\\Framework\\Event::get[A-Za-z]+\(\)#'
+            path: Observer/*
+        -
+            message: '#Call to an undefined method Magento\\Framework\\DataObject::get[A-Za-z]+\(\)#'
+            path: Model/Total/DocumentItems.php
+        -
+            message: '#Call to an undefined method Magento\\Checkout\\Model\\Session::set[A-Za-z]+\(\)#'
+            path: Controller/Checkout/Back.php
+        -
+            message: '#Call to an undefined method Magento\\Quote\\Model\\Quote\\Item\\AbstractItem::get[A-Za-z]+\(\)#'
+            path: Model/DiscountCalculator.php
+        -
+            message: '#Call to an undefined method Magento\\Quote\\Model\\Quote::setTotalsCollectedFlag\(\)#'
+            path: Plugin/Quote/RecollectStaleDiscount.php
+        # Block helpers inherited through Magento's own class hierarchy.
+        -
+            message: '#Call to an undefined method .*::(getHtmlId|getScopeCode)\(\)#'
+        # OrderPaymentInterface declares getAdditionalInformation() with no
+        # arguments and setAdditionalInformation() with one, while the
+        # implementation every store runs takes a key and a key plus a value.
+        # Magento's own modules call it the way this one does.
+        -
+            message: '#Method Magento\\Sales\\Api\\Data\\OrderPaymentInterface::(get|set)AdditionalInformation\(\) invoked with \d+ parameter#'
+        -
+            message: '#Parameter \#1 \$additionalInformation of method Magento\\Sales\\Api\\Data\\OrderPaymentInterface::setAdditionalInformation\(\) expects array<string>, string given#'
+        -
+            message: '#Cannot cast array<string> to string#'
+        # Declared on the concrete Payment and Invoice, not on the interface.
+        -
+            message: '#Call to an undefined method Magento\\Sales\\Api\\Data\\OrderPaymentInterface::setTransactionId\(\)#'
+        -
+            message: '#Call to an undefined method Magento\\Sales\\Model\\Order\\Invoice::setRequestedCaptureCase\(\)#'
