@@ -3,13 +3,20 @@
     "description": "BriizPay pay by bank for Magento 2: UK Open Banking payments at checkout, settled to your bank account.",
     "type": "magento2-module",
     "license": "OSL-3.0",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "support": {
         "issues": "https://github.com/cavewebs/briizpay-magento/issues",
         "source": "https://github.com/cavewebs/briizpay-magento"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/cavewebs/briizpay-php"
+        }
+    ],
     "require": {
-        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
+        "php": "~8.4.0||~8.5.0",
+        "briizpay/briizpay-php": "^0.1",
         "magento/framework": "^103.0",
         "magento/module-backend": "^102.0",
         "magento/module-checkout": "^100.4",

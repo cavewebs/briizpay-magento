@@ -5,6 +5,7 @@ namespace BriizPay\PayByBank\Test\Unit\Model;
 
 use BriizPay\PayByBank\Model\Discount;
 use BriizPay\PayByBank\Model\LineItems;
+use BriizPay\PayByBank\Model\Money;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -30,6 +31,11 @@ class LineItemsTest extends TestCase
         'name' => 'Flat Rate - Fixed', 'quantity' => 1, 'gross' => 500, 'taxRateBps' => 0, 'sku' => '',
     ];
 
+    private function lineItems(): LineItems
+    {
+        return new LineItems(new Money());
+    }
+
     /** @param array<int, array<string, mixed>> $lines */
     private static function total(array $lines): int
     {
@@ -48,7 +54,7 @@ class LineItemsTest extends TestCase
 
     public function testCarriesQuantityUnitPriceAndSku(): void
     {
-        $lines = LineItems::build([self::MUGS, self::SHIPPING], 3000);
+        $lines = $this->lineItems()->build([self::MUGS, self::SHIPPING], 3000);
 
         self::assertNotNull($lines);
         self::assertSame(2.0, (float) $lines[0]['quantity']);
@@ -58,7 +64,7 @@ class LineItemsTest extends TestCase
 
     public function testOmitsTheSkuKeyWhenThereIsNone(): void
     {
-        $lines = LineItems::build([self::MUGS, self::SHIPPING], 3000);
+        $lines = $this->lineItems()->build([self::MUGS, self::SHIPPING], 3000);
 
         self::assertArrayNotHasKey('sku', $lines[1]);
     }
@@ -66,7 +72,7 @@ class LineItemsTest extends TestCase
     /** Magento prices include tax, so the line has to say so or the receipt doubles it. */
     public function testLinesAreTaxInclusiveAtTheItemRate(): void
     {
-        $lines = LineItems::build([self::MUGS, self::SHIPPING], 3000);
+        $lines = $this->lineItems()->build([self::MUGS, self::SHIPPING], 3000);
 
         self::assertSame(1, (int) $lines[0]['taxInclusive']);
         self::assertSame(2000, $lines[0]['taxRateBps']);
@@ -74,7 +80,7 @@ class LineItemsTest extends TestCase
 
     public function testShippingIsALineOfItsOwn(): void
     {
-        $lines = LineItems::build([self::MUGS, self::SHIPPING], 3000);
+        $lines = $this->lineItems()->build([self::MUGS, self::SHIPPING], 3000);
 
         self::assertSame('Flat Rate - Fixed@500', self::last($lines));
     }
@@ -86,7 +92,8 @@ class LineItemsTest extends TestCase
      */
     public function testARowThatWillNotDivideIsChargedOnce(): void
     {
-        $lines = LineItems::build([['name' => 'Tea', 'quantity' => 3.0, 'gross' => 1000, 'taxRateBps' => 0]], 1000);
+        $row = ['name' => 'Tea', 'quantity' => 3.0, 'gross' => 1000, 'taxRateBps' => 0];
+        $lines = $this->lineItems()->build([$row], 1000);
 
         self::assertSame('Tea × 3', $lines[0]['name']);
         self::assertSame(1, (int) $lines[0]['quantity']);
@@ -95,7 +102,7 @@ class LineItemsTest extends TestCase
 
     public function testLinesThatAlreadyAddUpGetNoExtraLine(): void
     {
-        self::assertCount(2, LineItems::build([self::MUGS, self::SHIPPING], 3000));
+        self::assertCount(2, $this->lineItems()->build([self::MUGS, self::SHIPPING], 3000));
     }
 
     /**
@@ -112,7 +119,7 @@ class LineItemsTest extends TestCase
         string $expectedLastLine,
         string $case
     ): void {
-        $lines = LineItems::build($rows, $totalMinor);
+        $lines = $this->lineItems()->build($rows, $totalMinor);
 
         self::assertSame($expectedLastLine, self::last($lines), $case);
         self::assertSame($totalMinor, self::total($lines), 'the lines add up to what is charged');
@@ -133,7 +140,7 @@ class LineItemsTest extends TestCase
     public function testANamedReductionNeedsNoBalancingLine(): void
     {
         $credit = ['name' => 'Store credit', 'quantity' => 1, 'gross' => -1000, 'taxRateBps' => 0];
-        $lines = LineItems::build([self::MUGS, self::SHIPPING, $credit], 2000);
+        $lines = $this->lineItems()->build([self::MUGS, self::SHIPPING, $credit], 2000);
 
         self::assertSame('Store credit@-1000', self::last($lines));
     }
@@ -144,7 +151,7 @@ class LineItemsTest extends TestCase
     #[DataProvider('nothingToSendProvider')]
     public function testSendsNoLinesWhenThereIsNothingToList(array $rows, int $totalMinor, string $case): void
     {
-        self::assertNull(LineItems::build($rows, $totalMinor), $case);
+        self::assertNull($this->lineItems()->build($rows, $totalMinor), $case);
     }
 
     public static function nothingToSendProvider(): array
@@ -162,7 +169,7 @@ class LineItemsTest extends TestCase
     public function testALongOrderIsSummarisedAndStillAddsUp(): void
     {
         $rows = array_fill(0, 150, ['name' => 'Pin', 'quantity' => 1, 'gross' => 2, 'taxRateBps' => 0]);
-        $lines = LineItems::build($rows, 299);
+        $lines = $this->lineItems()->build($rows, 299);
 
         self::assertCount(100, $lines);
         self::assertSame('52 more items@104', $lines[98]['name'] . '@' . $lines[98]['unitPriceMinor']);
@@ -172,7 +179,7 @@ class LineItemsTest extends TestCase
     /** A product name is shop data and lands on a receipt, so markup comes out. */
     public function testStripsMarkupAndEntitiesFromNames(): void
     {
-        $lines = LineItems::build(
+        $lines = $this->lineItems()->build(
             [['name' => '<b>Fish &amp; chips</b>', 'quantity' => 1, 'gross' => 850, 'taxRateBps' => 0]],
             850
         );
@@ -183,15 +190,15 @@ class LineItemsTest extends TestCase
     /** Magento gives shipping as a net amount and its tax, never a rate. */
     public function testWorksShippingVatBackFromItsTax(): void
     {
-        self::assertSame(2000, LineItems::rateBps(600, 100));
+        self::assertSame(2000, $this->lineItems()->rateBps(600, 100));
     }
 
     public function testThePayByBankDiscountIsALineOfItsOwn(): void
     {
-        $rows = LineItems::reductionRows(
+        $rows = $this->lineItems()->reductionRows(
             [Discount::LABEL => '-0.3000', 'Gift card' => null, 'Store credit' => '0.0000']
         );
-        $lines = LineItems::build(array_merge([self::MUGS, self::SHIPPING], $rows), 2970);
+        $lines = $this->lineItems()->build(array_merge([self::MUGS, self::SHIPPING], $rows), 2970);
 
         self::assertCount(1, $rows, 'an unset or zero reduction sends no line');
         self::assertSame('Pay by bank discount@-30', self::last($lines));
@@ -202,6 +209,6 @@ class LineItemsTest extends TestCase
     /** Magento stores some reductions positive, and every one of them comes off. */
     public function testAReductionStoredPositiveIsStillTakenOff(): void
     {
-        self::assertSame(-500, LineItems::reductionRows(['Gift card' => 5])[0]['gross']);
+        self::assertSame(-500, $this->lineItems()->reductionRows(['Gift card' => 5])[0]['gross']);
     }
 }

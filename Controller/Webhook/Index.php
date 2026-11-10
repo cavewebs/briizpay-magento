@@ -8,13 +8,14 @@ use BriizPay\PayByBank\Model\EventLog;
 use BriizPay\PayByBank\Model\OrderCompleter;
 use BriizPay\PayByBank\Model\PaymentStarter;
 use BriizPay\PayByBank\Model\Signature;
+use BriizPay\Sdk\Dto\WebhookEvent;
+use BriizPay\Sdk\Exception\ValidationException;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\OrderFactory;
 use Psr\Log\LoggerInterface;
@@ -39,7 +40,6 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         private readonly OrderFactory $orderFactory,
         private readonly OrderCompleter $completer,
         private readonly JsonFactory $jsonFactory,
-        private readonly Json $json,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -62,28 +62,25 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         }
 
         try {
-            $event = $this->json->unserialize($body);
-        } catch (\Throwable) {
-            $event = null;
-        }
-        if (!is_array($event) || empty($event['id']) || empty($event['type'])) {
+            $event = $this->signature->parse($body, $header, $secret);
+        } catch (ValidationException) {
             return $result->setHttpResponseCode(400)->setData(['error' => 'malformed']);
         }
 
-        $eventId = (string) $event['id'];
+        $eventId = $event->id;
 
         // At-least-once delivery: the same event arrives again after any failure.
         if (!$this->events->claim($eventId)) {
             return $result->setData(['received' => true, 'duplicate' => true]);
         }
 
-        if ($event['type'] !== 'payment_request.paid') {
+        if (!$event->isPaymentRequestPaid()) {
             // Accepted so BriizPay does not retry an event type this version
             // does not know yet.
             return $result->setData(['received' => true, 'ignored' => true]);
         }
 
-        $data = isset($event['data']) && is_array($event['data']) ? $event['data'] : [];
+        $data = $this->completionData($event);
         $order = $this->findOrder($data);
 
         if (!$order) {
@@ -107,6 +104,28 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         }
 
         return $result->setData(['received' => true]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function completionData(WebhookEvent $event): array
+    {
+        $data = [];
+        if ($event->data->externalReference) {
+            $data['externalReference'] = $event->data->externalReference;
+        }
+        if ($event->data->paymentRequestId) {
+            $data['paymentRequestId'] = $event->data->paymentRequestId;
+        }
+        if ($event->data->amountMinor !== null) {
+            $data['amountMinor'] = $event->data->amountMinor;
+        }
+        $transactionId = $event->data->getTransactionId();
+        if ($transactionId !== null && $transactionId !== '') {
+            $data['transactionId'] = $transactionId;
+        }
+        return $data;
     }
 
     /**

@@ -48,17 +48,10 @@
       Static methods.
 
       Magento discourages them because they cannot be intercepted by a plugin.
-      Every one here is pure arithmetic on values (pence conversion, the
-      discount, the receipt lines) with no store state and nothing a merchant
-      would want to intercept, and they are the parts under the heaviest test.
-      A data provider has to be static besides, and PHPUnit calls it directly.
+      The module's own helpers are instance services. PHPUnit data providers
+      have to be static, and PHPUnit calls them directly.
     -->
     <rule ref="Magento2.Functions.StaticFunction.StaticFunction">
-        <exclude-pattern>Model/Money.php</exclude-pattern>
-        <exclude-pattern>Model/Discount.php</exclude-pattern>
-        <exclude-pattern>Model/LineItems.php</exclude-pattern>
-        <exclude-pattern>Model/DiscountCalculator.php</exclude-pattern>
-        <exclude-pattern>Model/Total/DocumentItems.php</exclude-pattern>
         <exclude-pattern>Test/*</exclude-pattern>
     </rule>
 

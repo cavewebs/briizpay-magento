@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model;
 
+use BriizPay\PayByBank\Api\DiscountInterface;
+
 /**
  * The pay by bank discount: its names and its arithmetic.
  *
@@ -11,14 +13,14 @@ namespace BriizPay\PayByBank\Model;
  * saving they can see is the reason that works. The merchant can afford it: a
  * card costs them a percentage of every order and BriizPay does not.
  *
- * Kept free of Magento so compute() can be pinned by Test/run.php with the
+ * Kept free of Magento so compute() can be pinned by the unit tests with the
  * same cases as the WooCommerce plugin's tests/test-discount.php. The two
  * plugins promise merchants the same discount, so they work it out the same
  * way.
  *
  * @api
  */
-class Discount
+class Discount implements DiscountInterface
 {
     public const TYPE_PERCENT = 'percent';
     public const TYPE_FIXED = 'fixed';
@@ -56,7 +58,7 @@ class Discount
      * @param float|int|string $amount Percent, or pounds for a fixed discount.
      * @param int $decimals Currency precision.
      */
-    public static function compute(
+    public function compute(
         float|int|string $basis,
         string $type,
         float|int|string $amount,
@@ -87,7 +89,7 @@ class Discount
      * @param float $part The document's items, after discounts, with tax.
      * @param float $whole The order's items, on the same terms.
      */
-    public static function share(
+    public function share(
         float $orderAmount,
         float $alreadyTaken,
         bool $isLast,

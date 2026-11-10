@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model\Total;
 
+use BriizPay\PayByBank\Api\DocumentItemsInterface;
 use Magento\Framework\DataObject;
 
 /**
@@ -12,13 +13,13 @@ use Magento\Framework\DataObject;
  * worked out on at checkout, so the part of the order an invoice or credit
  * memo covers is measured the way the discount was.
  */
-class DocumentItems
+class DocumentItems implements DocumentItemsInterface
 {
     /**
      * @param iterable<DataObject> $items order items, or invoice or credit memo items
      * @return array{0: float, 1: float} in the order currency and the base currency
      */
-    public static function gross(iterable $items): array
+    public function gross(iterable $items): array
     {
         $gross = 0.0;
         $base = 0.0;

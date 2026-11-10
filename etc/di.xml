@@ -67,4 +67,28 @@
     <type name="Magento\Quote\Api\CartTotalRepositoryInterface">
         <plugin name="briizpay_add_discount_offer" type="BriizPay\PayByBank\Plugin\Quote\AddDiscountOffer"/>
     </type>
+
+    <!-- Arithmetic helpers and the API client as interceptable services. -->
+    <preference for="BriizPay\PayByBank\Api\ClientInterface" type="BriizPay\PayByBank\Model\Api\Client"/>
+    <preference for="BriizPay\PayByBank\Api\MoneyInterface" type="BriizPay\PayByBank\Model\Money"/>
+    <preference for="BriizPay\PayByBank\Api\DiscountInterface" type="BriizPay\PayByBank\Model\Discount"/>
+    <preference for="BriizPay\PayByBank\Api\LineItemsInterface" type="BriizPay\PayByBank\Model\LineItems"/>
+    <preference for="BriizPay\PayByBank\Api\DocumentItemsInterface" type="BriizPay\PayByBank\Model\Total\DocumentItems"/>
+    <preference for="BriizPay\PayByBank\Api\DiscountCalculatorInterface" type="BriizPay\PayByBank\Model\DiscountCalculator"/>
+
+    <!-- PHP SDK: Magento Curl as PSR-18 with a 20s timeout, and a small PSR-17
+         factory because Magento does not ship one of its own. -->
+    <preference for="BriizPay\Sdk\Contract\WebhookVerifierInterface" type="BriizPay\Sdk\Webhook\WebhookSignature"/>
+    <type name="BriizPay\PayByBank\Model\Http\CurlClient">
+        <arguments>
+            <argument name="timeout" xsi:type="number">20</argument>
+        </arguments>
+    </type>
+    <type name="BriizPay\PayByBank\Model\Api\SdkClientFactory">
+        <arguments>
+            <argument name="httpClient" xsi:type="object">BriizPay\PayByBank\Model\Http\CurlClient</argument>
+            <argument name="requestFactory" xsi:type="object">BriizPay\PayByBank\Model\Http\Psr17Factory</argument>
+            <argument name="streamFactory" xsi:type="object">BriizPay\PayByBank\Model\Http\Psr17Factory</argument>
+        </arguments>
+    </type>
 </config>

@@ -27,7 +27,7 @@ class MoneyTest extends TestCase
     #[DataProvider('amountProvider')]
     public function testConvertsToPence(float|string $amount, int $expected, string $case): void
     {
-        self::assertSame($expected, Money::toMinor($amount), $case);
+        self::assertSame($expected, (new Money())->toMinor($amount), $case);
     }
 
     public static function amountProvider(): array

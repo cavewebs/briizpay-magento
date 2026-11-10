@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model;
 
+use BriizPay\PayByBank\Api\MoneyInterface;
+
 /**
  * Pounds to pence, once, in one place.
  *
@@ -12,9 +14,9 @@ namespace BriizPay\PayByBank\Model;
  *
  * @api
  */
-class Money
+class Money implements MoneyInterface
 {
-    public static function toMinor(float|string $amount): int
+    public function toMinor(float|string $amount): int
     {
         return (int) round(((float) $amount) * 100);
     }

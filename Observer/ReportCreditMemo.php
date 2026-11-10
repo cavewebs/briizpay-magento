@@ -3,15 +3,16 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Observer;
 
+use BriizPay\PayByBank\Api\ClientInterface;
+use BriizPay\PayByBank\Api\MoneyInterface;
 use BriizPay\PayByBank\Model\Api\ApiException;
-use BriizPay\PayByBank\Model\Api\Client;
 use BriizPay\PayByBank\Model\Config;
-use BriizPay\PayByBank\Model\Money;
 use BriizPay\PayByBank\Model\PaymentStarter;
+use BriizPay\Sdk\Dto\CreateRefund;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
-use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Creditmemo;
+use Magento\Sales\Model\Order\Payment\Transaction;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -41,7 +42,8 @@ class ReportCreditMemo implements ObserverInterface
     public const REPORTED_FLAG = 'briizpay_refund_reported';
 
     public function __construct(
-        private readonly Client $client,
+        private readonly ClientInterface $client,
+        private readonly MoneyInterface $money,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -70,7 +72,7 @@ class ReportCreditMemo implements ObserverInterface
             return;
         }
 
-        $amountMinor = Money::toMinor((float) $creditmemo->getGrandTotal());
+        $amountMinor = $this->money->toMinor((float) $creditmemo->getGrandTotal());
         if ($amountMinor <= 0) {
             return;
         }
@@ -81,15 +83,15 @@ class ReportCreditMemo implements ObserverInterface
 
         try {
             $response = $this->client->createRefund(
-                [
-                    'paymentRequestId' => $requestId,
-                    'amountMinor' => $amountMinor,
-                    'reason' => (string) ($creditmemo->getCustomerNote() ?: ''),
+                new CreateRefund(
+                    paymentRequestId: $requestId,
+                    amountMinor: $amountMinor,
                     // The store's own id for this refund, which is what makes
                     // a retry return the first refund instead of a second.
-                    'externalReference' => 'magento_creditmemo_'
+                    externalReference: 'magento_creditmemo_'
                         . ($creditmemo->getIncrementId() ?: $creditmemo->getId()),
-                ],
+                    reason: (string) ($creditmemo->getCustomerNote() ?: '')
+                ),
                 (int) $order->getStoreId()
             );
         } catch (ApiException $e) {
@@ -109,10 +111,38 @@ class ReportCreditMemo implements ObserverInterface
         // BriizPay's own words. On the Open Banking rail the money has not
         // moved yet, and saying otherwise is how a customer gets told the
         // wrong thing.
-        $message = isset($response['msg']) && $response['msg']
-            ? (string) $response['msg']
-            : (string) __('Recorded in BriizPay.');
+        $message = $response->instruction() ?: (string) __('Recorded in BriizPay.');
 
         $order->addCommentToStatusHistory('BriizPay: ' . $message);
+
+        $this->linkRefundToCapture($order->getPayment(), $creditmemo, $response->getTransactionId());
+    }
+
+    /**
+     * Magento's refund row sits under the capture whose txn_id is the BriizPay
+     * payment id, so Sales > Transactions shows them as parent and child.
+     */
+    private function linkRefundToCapture(mixed $payment, object $creditmemo, ?string $fromRefund): void
+    {
+        if (!is_object($payment)) {
+            return;
+        }
+
+        $parentId = (string) $payment->getLastTransId();
+        if ($parentId === '') {
+            $parentId = (string) $payment->getAdditionalInformation(PaymentStarter::INFO_TRANSACTION_ID);
+        }
+        if ($parentId === '' && $fromRefund) {
+            $parentId = $fromRefund;
+        }
+        if ($parentId === '') {
+            return;
+        }
+
+        $refundTxnId = $parentId . '-refund';
+        $creditmemo->setTransactionId($refundTxnId);
+        $payment->setParentTransactionId($parentId);
+        $payment->setTransactionId($refundTxnId);
+        $payment->addTransaction(Transaction::TYPE_REFUND, $creditmemo);
     }
 }

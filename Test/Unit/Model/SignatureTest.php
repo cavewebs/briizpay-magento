@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BriizPay\PayByBank\Test\Unit\Model;
 
 use BriizPay\PayByBank\Model\Signature;
+use BriizPay\Sdk\Webhook\WebhookSignature;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -19,10 +20,10 @@ use PHPUnit\Framework\TestCase;
  * instead of every store silently rejecting every payment notification.
  *
  * Both the attribute and the annotation are present throughout, on purpose.
- * This module supports Magento 2.4.6 to 2.4.9, which ships PHPUnit 9 through
- * 12: PHPUnit 9 reads the annotation and ignores the attribute, PHPUnit 10 and
- * later read the attribute and no longer apply the annotation. With only one
- * of them the suite silently runs no data sets on half the supported range.
+ * This module supports Magento 2.4.8 to 2.4.9, which ships PHPUnit 10 through
+ * 12: PHPUnit 10 reads the annotation and the attribute, PHPUnit 11 and later
+ * read the attribute and no longer apply the annotation. With only one of
+ * them the suite silently runs no data sets on half the supported range.
  *
  * @covers \BriizPay\PayByBank\Model\Signature
  */
@@ -39,7 +40,7 @@ class SignatureTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->signature = new Signature();
+        $this->signature = new Signature(new WebhookSignature());
     }
 
     private function header(?int $timestamp = null, ?string $v1 = null): string
@@ -135,5 +136,23 @@ class SignatureTest extends TestCase
         self::assertFalse(
             $this->signature->verify(self::BODY, $this->header(), '', self::TIMESTAMP)
         );
+    }
+
+    public function testParseYieldsTheEventTheApiSigned(): void
+    {
+        $event = $this->signature->parse(
+            self::BODY,
+            $this->header(),
+            self::SECRET,
+            self::TIMESTAMP
+        );
+
+        self::assertSame('evt_magento', $event->id);
+        self::assertTrue($event->isPaymentRequestPaid());
+        self::assertSame('req_1', $event->data->paymentRequestId);
+        self::assertSame('000000042', $event->data->externalReference);
+        self::assertSame(1499, $event->data->amountMinor);
+        self::assertNull($event->data->getTransactionId());
+        self::assertNull($event->data->transactionId);
     }
 }

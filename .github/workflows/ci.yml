@@ -32,11 +32,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # Every version composer.json claims. Magento 2.4.6 runs on 8.1 and
-      # 2.4.9 on 8.4, so a store on any of them is covered by a real run
+      # Every version composer.json claims. Magento 2.4.8 and 2.4.9 run on
+      # 8.4; 8.5 is included so a store that has it is covered by a real run
       # rather than by a version range nobody tested.
       matrix:
-        php: ['8.1', '8.2', '8.3', '8.4']
+        php: ['8.4', '8.5']
 
     steps:
       - uses: actions/checkout@v4
@@ -48,12 +48,15 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install PHPUnit
+      - name: Install PHPUnit and the PHP SDK
         run: |
           mkdir -p "$TOOLS_DIR"
           cd "$TOOLS_DIR"
           composer init --no-interaction --name=briizpay/ci-tools
-          composer require --no-interaction --no-progress phpunit/phpunit:^9.6
+          composer config repositories.briizpay-php vcs https://github.com/cavewebs/briizpay-php
+          composer require --no-interaction --no-progress \
+            phpunit/phpunit:^9.6 \
+            briizpay/briizpay-php:^0.1
 
       - name: Unit tests
         run: "$TOOLS_DIR/vendor/bin/phpunit --configuration phpunit.xml.dist"
@@ -68,7 +71,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           coverage: none
           tools: composer:v2
 

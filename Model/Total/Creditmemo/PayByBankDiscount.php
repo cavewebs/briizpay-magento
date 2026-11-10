@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model\Total\Creditmemo;
 
+use BriizPay\PayByBank\Api\DiscountInterface;
+use BriizPay\PayByBank\Api\DocumentItemsInterface;
 use BriizPay\PayByBank\Model\Discount;
-use BriizPay\PayByBank\Model\Total\DocumentItems;
 use Magento\Sales\Model\Order\Creditmemo;
 use Magento\Sales\Model\Order\Creditmemo\Total\AbstractTotal;
 
@@ -20,6 +21,12 @@ use Magento\Sales\Model\Order\Creditmemo\Total\AbstractTotal;
  */
 class PayByBankDiscount extends AbstractTotal
 {
+    public function __construct(
+        private readonly DocumentItemsInterface $documentItems,
+        private readonly DiscountInterface $discount
+    ) {
+    }
+
     public function collect(Creditmemo $creditmemo)
     {
         $creditmemo->setData(Discount::FIELD, 0.0);
@@ -43,11 +50,11 @@ class PayByBankDiscount extends AbstractTotal
             }
         }
 
-        [$part, $basePart] = DocumentItems::gross($creditmemo->getAllItems());
-        [$whole, $baseWhole] = DocumentItems::gross($order->getAllItems());
+        [$part, $basePart] = $this->documentItems->gross($creditmemo->getAllItems());
+        [$whole, $baseWhole] = $this->documentItems->gross($order->getAllItems());
         $isLast = $creditmemo->isLast();
-        $amount = Discount::share($orderAmount, $taken, $isLast, $part, $whole);
-        $baseAmount = Discount::share($baseOrderAmount, $baseTaken, $isLast, $basePart, $baseWhole);
+        $amount = $this->discount->share($orderAmount, $taken, $isLast, $part, $whole);
+        $baseAmount = $this->discount->share($baseOrderAmount, $baseTaken, $isLast, $basePart, $baseWhole);
 
         $creditmemo->setData(Discount::FIELD, -$amount);
         $creditmemo->setData(Discount::BASE_FIELD, -$baseAmount);

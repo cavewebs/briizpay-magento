@@ -4,8 +4,8 @@
 customer chooses their bank, approves the payment in their banking app, and the
 money goes straight to the merchant's bank account.
 
-For Magento Open Source and Adobe Commerce 2.4 on the standard Luma-based
-checkout, PHP 8.1 to 8.4. Orders in pounds only.
+For Magento Open Source and Adobe Commerce 2.4.8 and 2.4.9 on the standard
+Luma-based checkout, PHP 8.4 or 8.5. Orders in pounds only.
 
 ## How it works
 
@@ -73,7 +73,12 @@ link on BriizPay so it cannot be paid later.
 
 With Composer, from the Magento root:
 
+The module talks to BriizPay through `briizpay/briizpay-php` `^0.1`. Until that
+package is on Packagist, Composer needs its GitHub repository as well as this
+module:
+
 ```bash
+composer config repositories.briizpay-php vcs https://github.com/cavewebs/briizpay-php
 composer require briizpay/module-paybybank
 bin/magento module:enable BriizPay_PayByBank
 bin/magento setup:upgrade
@@ -81,6 +86,8 @@ bin/magento setup:di:compile
 bin/magento setup:static-content:deploy en_GB
 bin/magento cache:flush
 ```
+
+Drop the VCS repository once the SDK is on Packagist.
 
 Or without Composer, unzip the release into `app/code/BriizPay/PayByBank` so
 that `registration.php` sits directly in that folder, and run the same
@@ -151,6 +158,9 @@ and it is the first thing a new merchant reads about the product.
 
 The full history is in [CHANGELOG.md](CHANGELOG.md). The highlights:
 
+- **2.0.0**: PHP 8.4 is the minimum. The module talks to BriizPay through the
+  PHP SDK, the arithmetic helpers are Magento services, and a paid order stores
+  BriizPay's transaction ID on the Magento payment and in Sales > Transactions.
 - **1.2.0**: Routes to the right BriizPay from the key alone: `bzp_sk_sandbox_`
   keys now reach the BriizPay sandbox, where a store can place a test order
   before going live. Live keys are unaffected, and existing `bzp_sk_test_` keys
@@ -182,7 +192,7 @@ The full history is in [CHANGELOG.md](CHANGELOG.md). The highlights:
 Three gates, all runnable by anyone with the repository.
 
 ```bash
-composer test      # PHPUnit, 113 tests
+composer test      # PHPUnit
 composer phpcs     # the Magento coding standard
 composer phpstan   # static analysis at level 6 (needs a store, see below)
 ```
@@ -204,12 +214,13 @@ store the file declares nothing and the same tests run against the real
 framework. That is what lets CI check every push.
 
 What they cover: the webhook signature against a vector produced by the API's
-own signing code, pence conversion, the receipt lines, the pay by bank discount
-(the same cases as the WooCommerce plugin's, so both give a customer the same
-saving), the environment a key routes to, the first-run copy including the
-claims it may not make, and the shipped files, from the config default to the
-size of the bank logos. The rest is exercised end to end against a Mage-OS
-testbed and the BriizPay test environment.
+own signing code (now via the PHP SDK verifier), exception mapping from the
+SDK, the 20s Curl timeout, pence conversion, the receipt lines, the pay by
+bank discount (the same cases as the WooCommerce plugin's, so both give a
+customer the same saving), the environment a key routes to, the first-run copy
+including the claims it may not make, and the shipped files, from the config
+default to the size of the bank logos. The rest is exercised end to end
+against a Mage-OS testbed and the BriizPay test environment.
 
 ### Coding standard
 
@@ -217,8 +228,8 @@ testbed and the BriizPay test environment.
 warnings.
 
 Four things are excluded, each scoped and with its reason in the file: docblocks
-that would restate a typed signature, line length in XML, static methods on the
-pure-arithmetic helpers, and two sniffs that misread the test stubs. They are
+that would restate a typed signature, line length in XML, static methods on
+PHPUnit data providers, and two sniffs that misread the test stubs. They are
 written as decisions rather than silences, so disagreeing with one is a
 three-line change.
 

@@ -106,7 +106,7 @@ class Config
             && $this->getDiscountAmount($storeId) > 0;
     }
 
-    /** 'percent' or 'fixed'. Anything else is read as a percentage, as Discount::compute() does. */
+    /** 'percent' or 'fixed'. Anything else is read as a percentage, as DiscountInterface::compute() does. */
     public function getDiscountType(?int $storeId = null): string
     {
         $type = (string) $this->scopeConfig->getValue(

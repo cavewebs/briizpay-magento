@@ -9,6 +9,7 @@
 parameters:
     level: 6
     paths:
+        - Api
         - Block
         - Controller
         - Gateway

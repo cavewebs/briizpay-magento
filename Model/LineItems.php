@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model;
 
+use BriizPay\PayByBank\Api\LineItemsInterface;
+use BriizPay\PayByBank\Api\MoneyInterface;
 use Magento\Sales\Model\Order;
 
 /**
@@ -18,10 +20,15 @@ use Magento\Sales\Model\Order;
  *
  * @api
  */
-class LineItems
+class LineItems implements LineItemsInterface
 {
     /** BriizPay takes up to this many lines on one payment. */
     public const MAX_LINES = 100;
+
+    public function __construct(
+        private readonly MoneyInterface $money
+    ) {
+    }
 
     /**
      * Lines for a Magento order, or null when there is nothing to list.
@@ -33,14 +40,14 @@ class LineItems
      *
      * @return list<array<string, mixed>>|null
      */
-    public static function forOrder(Order $order): ?array
+    public function forOrder(Order $order): ?array
     {
         $rows = [];
         foreach ($order->getAllVisibleItems() as $item) {
             $rows[] = [
                 'name' => (string) $item->getName(),
                 'quantity' => (float) $item->getQtyOrdered(),
-                'gross' => Money::toMinor(
+                'gross' => $this->money->toMinor(
                     (float) $item->getRowTotal()
                     + (float) $item->getTaxAmount()
                     + (float) $item->getDiscountTaxCompensationAmount()
@@ -51,7 +58,7 @@ class LineItems
             ];
         }
 
-        $shipping = Money::toMinor(
+        $shipping = $this->money->toMinor(
             (float) $order->getShippingAmount()
             + (float) $order->getShippingTaxAmount()
             + (float) $order->getShippingDiscountTaxCompensationAmount()
@@ -62,9 +69,11 @@ class LineItems
                 'name' => (string) ($order->getShippingDescription() ?: __('Shipping')),
                 'quantity' => 1,
                 'gross' => $shipping,
-                'taxRateBps' => self::rateBps(
-                    Money::toMinor((float) $order->getShippingAmount() + (float) $order->getShippingTaxAmount()),
-                    Money::toMinor((float) $order->getShippingTaxAmount())
+                'taxRateBps' => $this->rateBps(
+                    $this->money->toMinor(
+                        (float) $order->getShippingAmount() + (float) $order->getShippingTaxAmount()
+                    ),
+                    $this->money->toMinor((float) $order->getShippingTaxAmount())
                 ),
                 'sku' => '',
             ];
@@ -76,14 +85,14 @@ class LineItems
         // reward points off the grand total without an order line either;
         // named here so the receipt says what they were. On Magento Open
         // Source those three are never set.
-        $rows = array_merge($rows, self::reductionRows([
+        $rows = array_merge($rows, $this->reductionRows([
             Discount::LABEL => $order->getData(Discount::FIELD),
             'Gift card' => $order->getData('gift_cards_amount'),
             'Store credit' => $order->getData('customer_balance_amount'),
             'Reward points' => $order->getData('reward_currency_amount'),
         ]));
 
-        return self::build($rows, Money::toMinor($order->getGrandTotal()));
+        return $this->build($rows, $this->money->toMinor($order->getGrandTotal()));
     }
 
     /**
@@ -93,14 +102,14 @@ class LineItems
      * @param array<string, float|int|string|null> $amounts label => pounds
      * @return list<array{name: string, quantity: int, gross: int, taxRateBps: int, sku: string}>
      */
-    public static function reductionRows(array $amounts): array
+    public function reductionRows(array $amounts): array
     {
         $rows = [];
         foreach ($amounts as $label => $value) {
-            $amount = Money::toMinor(abs((float) $value));
+            $amount = $this->money->toMinor(abs((float) $value));
             if ($amount > 0) {
                 $rows[] = [
-                    'name' => self::label((string) $label),
+                    'name' => $this->label((string) $label),
                     'quantity' => 1,
                     'gross' => -$amount,
                     'taxRateBps' => 0,
@@ -122,12 +131,10 @@ class LineItems
      * off or added to the total without a line of its own. The amount charged
      * is always the grand total; these lines only make the receipt agree.
      *
-     * Kept free of Magento so the arithmetic can be pinned by Test/run.php.
-     *
      * @param list<array{name: string, quantity: float|int, gross: int, taxRateBps: int, sku?: string}> $rows
      * @return list<array<string, mixed>>|null Null only when there are no rows or nothing to charge.
      */
-    public static function build(array $rows, int $totalMinor): ?array
+    public function build(array $rows, int $totalMinor): ?array
     {
         if ($rows === [] || $totalMinor <= 0) {
             return null;
@@ -138,7 +145,7 @@ class LineItems
         foreach ($rows as $row) {
             $gross = (int) $row['gross'];
             $qty = (float) $row['quantity'];
-            $name = self::cleanName((string) $row['name']);
+            $name = $this->cleanName((string) $row['name']);
 
             if ($qty >= 1 && floor($qty) === $qty && $gross % (int) $qty === 0) {
                 $unit = intdiv($gross, (int) $qty);
@@ -146,7 +153,7 @@ class LineItems
                 // A discount that leaves a row not dividing evenly by its
                 // quantity: say how many in the name and charge the row once,
                 // so the line is exactly what the customer paid for it.
-                $name = self::cleanName(sprintf('%s × %s', $name, self::formatQty($qty)));
+                $name = $this->cleanName(sprintf('%s × %s', $name, $this->formatQty($qty)));
                 $qty = 1.0;
                 $unit = $gross;
             }
@@ -174,7 +181,7 @@ class LineItems
             $restSum = array_sum(array_slice($grosses, $keep));
             $lines = array_slice($lines, 0, $keep);
             $grosses = array_slice($grosses, 0, $keep);
-            $lines[] = self::plainLine(sprintf(self::label('%d more items'), $rest), $restSum);
+            $lines[] = $this->plainLine(sprintf($this->label('%d more items'), $rest), $restSum);
             $grosses[] = $restSum;
         }
 
@@ -183,23 +190,23 @@ class LineItems
             // Each row's tax rounds to the penny on its own, so the rows can be
             // out by up to a penny each.
             if (abs($difference) <= count($rows)) {
-                $label = self::label('Rounding');
+                $label = $this->label('Rounding');
             } elseif ($difference < 0) {
-                $label = self::label('Other discounts');
+                $label = $this->label('Other discounts');
             } else {
-                $label = self::label('Other charges');
+                $label = $this->label('Other charges');
             }
-            $lines[] = self::plainLine($label, $difference);
+            $lines[] = $this->plainLine($label, $difference);
         }
 
         return $lines;
     }
 
     /** @return array<string, mixed> A line of one, with no VAT of its own. */
-    private static function plainLine(string $name, int $gross): array
+    private function plainLine(string $name, int $gross): array
     {
         return [
-            'name' => self::cleanName($name),
+            'name' => $this->cleanName($name),
             'quantity' => 1,
             'unitPriceMinor' => $gross,
             'taxRateBps' => 0,
@@ -208,13 +215,13 @@ class LineItems
     }
 
     /** Receipt wording, translated when Magento is loaded. */
-    private static function label(string $text): string
+    private function label(string $text): string
     {
         return function_exists('__') ? (string) __($text) : $text;
     }
 
     /** A rate worked back from a gross and its tax, rounded to an integer percent. */
-    public static function rateBps(int $gross, int $tax): int
+    public function rateBps(int $gross, int $tax): int
     {
         $net = $gross - $tax;
         if ($tax <= 0 || $net <= 0) {
@@ -223,7 +230,7 @@ class LineItems
         return (int) round($tax / $net * 100) * 100;
     }
 
-    private static function cleanName(string $name): string
+    private function cleanName(string $name): string
     {
         // Magento discourages html_entity_decode in favour of the Escaper,
         // which escapes for output. This does the opposite on purpose: a
@@ -235,7 +242,7 @@ class LineItems
         return mb_substr($name !== '' ? $name : 'Item', 0, 140);
     }
 
-    private static function formatQty(float $qty): string
+    private function formatQty(float $qty): string
     {
         return floor($qty) === $qty ? (string) (int) $qty : rtrim(rtrim(number_format($qty, 3, '.', ''), '0'), '.');
     }

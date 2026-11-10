@@ -23,6 +23,13 @@ if (is_file($autoload)) {
     require $autoload;
 }
 
+// Standalone CI installs PHPUnit and the PHP SDK into TOOLS_DIR, because
+// `composer install` here needs Magento packages from repo.magento.com.
+$tools = getenv('TOOLS_DIR');
+if (is_string($tools) && $tools !== '' && is_file($tools . '/vendor/autoload.php')) {
+    require $tools . '/vendor/autoload.php';
+}
+
 // Only matters standalone: inside Magento every one of these already exists.
 require __DIR__ . '/MagentoStubs.php';
 

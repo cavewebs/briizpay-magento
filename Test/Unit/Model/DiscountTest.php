@@ -32,7 +32,7 @@ class DiscountTest extends TestCase
         float $expected,
         string $case
     ): void {
-        self::assertSame($expected, Discount::compute($basis, $type, $amount), $case);
+        self::assertSame($expected, (new Discount())->compute($basis, $type, $amount), $case);
     }
 
     public static function computeProvider(): array
@@ -62,7 +62,7 @@ class DiscountTest extends TestCase
         float $expected,
         string $case
     ): void {
-        self::assertSame($expected, Discount::compute($basis, $type, $amount), $case);
+        self::assertSame($expected, (new Discount())->compute($basis, $type, $amount), $case);
     }
 
     public static function safetyProvider(): array
@@ -79,7 +79,7 @@ class DiscountTest extends TestCase
     /** A zero-decimal currency cannot express a saving under a whole unit. */
     public function testHonoursCurrencyPrecision(): void
     {
-        self::assertSame(0.0, Discount::compute(45.99, 'percent', 1, 0));
+        self::assertSame(0.0, (new Discount())->compute(45.99, 'percent', 1, 0));
     }
 
     /**
@@ -103,7 +103,7 @@ class DiscountTest extends TestCase
     ): void {
         self::assertSame(
             $expected,
-            Discount::share($orderAmount, $alreadyTaken, $isLast, $part, $whole),
+            (new Discount())->share($orderAmount, $alreadyTaken, $isLast, $part, $whole),
             $case
         );
     }

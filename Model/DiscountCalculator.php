@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model;
 
-use Magento\Quote\Model\Quote;
+use BriizPay\PayByBank\Api\DiscountCalculatorInterface;
+use BriizPay\PayByBank\Api\DiscountInterface;
 use Magento\Quote\Api\Data\CartItemInterface;
+use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Item\AbstractItem;
 
 /**
@@ -16,10 +18,11 @@ use Magento\Quote\Model\Quote\Item\AbstractItem;
  *
  * @api
  */
-class DiscountCalculator
+class DiscountCalculator implements DiscountCalculatorInterface
 {
     public function __construct(
-        private readonly Config $config
+        private readonly Config $config,
+        private readonly DiscountInterface $discount
     ) {
     }
 
@@ -40,8 +43,8 @@ class DiscountCalculator
         [$basis, $baseBasis] = $this->basis($items);
 
         return [
-            Discount::compute($basis, $type, $amount),
-            Discount::compute($baseBasis, $type, $amount),
+            $this->discount->compute($basis, $type, $amount),
+            $this->discount->compute($baseBasis, $type, $amount),
         ];
     }
 
@@ -58,13 +61,13 @@ class DiscountCalculator
      */
     public function amountFor(Quote $quote, iterable $items): array
     {
-        if (!self::isPaidByBank($quote)) {
+        if (!$this->isPaidByBank($quote)) {
             return [0.0, 0.0];
         }
         return $this->offerFor($items, (int) $quote->getStoreId());
     }
 
-    public static function isPaidByBank(Quote $quote): bool
+    public function isPaidByBank(Quote $quote): bool
     {
         return $quote->getPayment()->getMethod() === Config::METHOD_CODE;
     }
