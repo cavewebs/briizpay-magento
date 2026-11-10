@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BriizPay\PayByBank\Test\Unit\Model;
 
 use BriizPay\PayByBank\Model\Signature;
+use BriizPay\Sdk\Webhook\WebhookSignature;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -39,7 +40,7 @@ class SignatureTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->signature = new Signature();
+        $this->signature = new Signature(new WebhookSignature());
     }
 
     private function header(?int $timestamp = null, ?string $v1 = null): string
@@ -135,5 +136,22 @@ class SignatureTest extends TestCase
         self::assertFalse(
             $this->signature->verify(self::BODY, $this->header(), '', self::TIMESTAMP)
         );
+    }
+
+    public function testParseYieldsTheEventTheApiSigned(): void
+    {
+        $event = $this->signature->parse(
+            self::BODY,
+            $this->header(),
+            self::SECRET,
+            self::TIMESTAMP
+        );
+
+        self::assertSame('evt_magento', $event->id);
+        self::assertTrue($event->isPaymentRequestPaid());
+        self::assertSame('req_1', $event->data->paymentRequestId);
+        self::assertSame('000000042', $event->data->externalReference);
+        self::assertSame(1499, $event->data->amountMinor);
+        self::assertNull($event->data->transactionId);
     }
 }

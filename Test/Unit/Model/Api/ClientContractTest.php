@@ -21,8 +21,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * The services Magento injects are the interfaces, not the classes.
  *
- * A later swap of Client for the standalone PHP SDK is a preference change
- * in di.xml. These assertions fail if a helper is added without a contract.
+ * Client is the Magento wrapper around the PHP SDK. These assertions fail
+ * if a helper is added without a contract.
  */
 class ClientContractTest extends TestCase
 {

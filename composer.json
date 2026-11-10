@@ -8,8 +8,15 @@
         "issues": "https://github.com/cavewebs/briizpay-magento/issues",
         "source": "https://github.com/cavewebs/briizpay-magento"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/cavewebs/briizpay-php"
+        }
+    ],
     "require": {
         "php": "~8.4.0||~8.5.0",
+        "briizpay/briizpay-php": "dev-cursor/php-sdk-9650",
         "magento/framework": "^103.0",
         "magento/module-backend": "^102.0",
         "magento/module-checkout": "^100.4",

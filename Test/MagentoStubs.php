@@ -196,12 +196,83 @@ namespace Magento\Framework\Event {
 }
 
 namespace Magento\Framework\HTTP\Client {
+    if (!class_exists(Curl::class)) {
+        class Curl
+        {
+            public int $timeout = 0;
+
+            /** @var array<string, string> */
+            public array $headers = [];
+
+            public string $body = '{}';
+
+            public int $status = 200;
+
+            public ?\Throwable $throws = null;
+
+            public string $method = '';
+
+            public string $uri = '';
+
+            /** @var mixed */
+            public mixed $posted = null;
+
+            public function setTimeout($timeout): void
+            {
+                $this->timeout = (int) $timeout;
+            }
+
+            public function addHeader($name, $value): void
+            {
+                $this->headers[(string) $name] = (string) $value;
+            }
+
+            public function get($uri): void
+            {
+                $this->request('GET', (string) $uri);
+            }
+
+            public function post($uri, $params): void
+            {
+                $this->posted = $params;
+                $this->request('POST', (string) $uri);
+            }
+
+            public function getStatus(): int
+            {
+                return $this->status;
+            }
+
+            public function getBody(): string
+            {
+                return $this->body;
+            }
+
+            /** @return array<string, string> */
+            public function getHeaders(): array
+            {
+                return $this->headers;
+            }
+
+            private function request(string $method, string $uri): void
+            {
+                $this->method = $method;
+                $this->uri = $uri;
+                if ($this->throws) {
+                    throw $this->throws;
+                }
+            }
+        }
+    }
+
     if (!class_exists(CurlFactory::class)) {
         class CurlFactory
         {
-            public function create()
+            public ?Curl $curl = null;
+
+            public function create(): Curl
             {
-                return null;
+                return $this->curl ?? new Curl();
             }
         }
     }
@@ -330,16 +401,16 @@ namespace {
          * The module calls __() with a literal string everywhere, because
          * that is the only form Magento's `i18n:collect-phrases` can extract.
          * Without this stub the tests could not load a class that does so.
+         * The real helper returns a Phrase; so does this, so Client's
+         * ApiException constructor type-checks in CI the same way it does
+         * in a store.
          *
          * @param string $text
          * @param mixed ...$arguments
          */
-        function __($text, ...$arguments): string
+        function __($text, ...$arguments): \Magento\Framework\Phrase
         {
-            return $arguments === [] ? (string) $text : vsprintf(
-                str_replace(['%1', '%2', '%3'], ['%s', '%s', '%s'], (string) $text),
-                $arguments
-            );
+            return new \Magento\Framework\Phrase((string) $text, $arguments);
         }
     }
 }

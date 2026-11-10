@@ -68,6 +68,9 @@ class OrderCompleter
             $order->unhold();
         }
 
+        // Optional. The API's present() does not currently send transactionId.
+        // A missing value still marks the order paid; Magento just records no
+        // gateway txn id on the payment or the invoice.
         $transactionId = isset($data['transactionId']) ? (string) $data['transactionId'] : '';
         $payment = $order->getPayment();
         if ($transactionId !== '') {

@@ -3,33 +3,26 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Api;
 
+use BriizPay\Sdk\Dto\CreatePaymentRequest;
+use BriizPay\Sdk\Dto\CreateRefund;
+use BriizPay\Sdk\Dto\PaymentRequest;
+use BriizPay\Sdk\Dto\Refund;
+
 /**
- * Talking to the BriizPay API.
+ * Talking to the BriizPay API through the PHP SDK.
  *
- * The implementation stays array-based until the standalone PHP SDK lands.
- * Callers depend on this contract so that swap is a preference change in
- * di.xml rather than a rewrite of every payment, refund and cancel path.
+ * Store-scoped: each call uses that store's API key. The SDK client itself
+ * is built per key, because Config is immutable.
  *
  * @api
  */
 interface ClientInterface
 {
-    /**
-     * @param array<string, mixed> $body amountMinor (pence), currency, externalReference,
-     *                                   customerName, customerEmail, memo, returnUrl
-     * @return array<string, mixed> the payment request, including id and payUrl
-     */
-    public function createPaymentRequest(array $body, ?int $storeId = null): array;
+    public function createPaymentRequest(CreatePaymentRequest $request, ?int $storeId = null): PaymentRequest;
 
-    /** @return array<string, mixed> */
-    public function getPaymentRequest(string $id, ?int $storeId = null): array;
+    public function getPaymentRequest(string $id, ?int $storeId = null): PaymentRequest;
 
-    /**
-     * @param array<string, mixed> $body
-     * @return array<string, mixed>
-     */
-    public function createRefund(array $body, ?int $storeId = null): array;
+    public function createRefund(CreateRefund $request, ?int $storeId = null): Refund;
 
-    /** @return array<string, mixed> */
-    public function cancelPaymentRequest(string $id, ?int $storeId = null): array;
+    public function cancelPaymentRequest(string $id, ?int $storeId = null): PaymentRequest;
 }

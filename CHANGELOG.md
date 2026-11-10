@@ -19,10 +19,16 @@ merge, then tag `vX.Y.Z` on that commit.
   them. Behaviour is unchanged.
 - `DiscountCalculator::isPaidByBank()` is an instance method on the same
   service the totals already use.
-- The BriizPay API client implements `ClientInterface`. A later swap to the
-  standalone PHP SDK (`cavewebs/briizpay-php`) is a preference change; this
-  module still talks in arrays.
+- The BriizPay API client is a Magento wrapper around the PHP SDK
+  (`briizpay/briizpay-php`). Calls use typed DTOs. Magento keys stay
+  store-scoped; the SDK Config is immutable, so each key gets its own client.
+  Magento Curl is the PSR-18 transport, with the same 20s timeout as before.
+  Webhook signatures go through the SDK verifier.
 - PHP 8.4 is the minimum. CI runs on 8.4 and 8.5.
+
+  TODO: once `briizpay/briizpay-php` is tagged, change the Composer require
+  from `dev-cursor/php-sdk-9650` (and the VCS repository) to `^0.1`. Do not
+  tag that SDK from this work.
 
 ### Added
 

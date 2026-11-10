@@ -73,7 +73,11 @@ link on BriizPay so it cannot be paid later.
 
 With Composer, from the Magento root:
 
+The module talks to BriizPay through `briizpay/briizpay-php`. Until that SDK
+is tagged, Composer needs its GitHub repository as well as this module:
+
 ```bash
+composer config repositories.briizpay-php vcs https://github.com/cavewebs/briizpay-php
 composer require briizpay/module-paybybank
 bin/magento module:enable BriizPay_PayByBank
 bin/magento setup:upgrade
@@ -81,6 +85,9 @@ bin/magento setup:di:compile
 bin/magento setup:static-content:deploy en_GB
 bin/magento cache:flush
 ```
+
+Change the SDK constraint to `^0.1` and drop the VCS repository once the SDK
+is tagged. Do not tag it from this module.
 
 Or without Composer, unzip the release into `app/code/BriizPay/PayByBank` so
 that `registration.php` sits directly in that folder, and run the same
@@ -204,12 +211,13 @@ store the file declares nothing and the same tests run against the real
 framework. That is what lets CI check every push.
 
 What they cover: the webhook signature against a vector produced by the API's
-own signing code, pence conversion, the receipt lines, the pay by bank discount
-(the same cases as the WooCommerce plugin's, so both give a customer the same
-saving), the environment a key routes to, the first-run copy including the
-claims it may not make, and the shipped files, from the config default to the
-size of the bank logos. The rest is exercised end to end against a Mage-OS
-testbed and the BriizPay test environment.
+own signing code (now via the PHP SDK verifier), exception mapping from the
+SDK, the 20s Curl timeout, pence conversion, the receipt lines, the pay by
+bank discount (the same cases as the WooCommerce plugin's, so both give a
+customer the same saving), the environment a key routes to, the first-run copy
+including the claims it may not make, and the shipped files, from the config
+default to the size of the bank logos. The rest is exercised end to end
+against a Mage-OS testbed and the BriizPay test environment.
 
 ### Coding standard
 

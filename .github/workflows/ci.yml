@@ -48,12 +48,17 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install PHPUnit
+      - name: Install PHPUnit and the PHP SDK
         run: |
           mkdir -p "$TOOLS_DIR"
           cd "$TOOLS_DIR"
           composer init --no-interaction --name=briizpay/ci-tools
-          composer require --no-interaction --no-progress phpunit/phpunit:^9.6
+          composer config minimum-stability dev
+          composer config prefer-stable true
+          composer config repositories.briizpay-php vcs https://github.com/cavewebs/briizpay-php
+          composer require --no-interaction --no-progress \
+            phpunit/phpunit:^9.6 \
+            briizpay/briizpay-php:dev-cursor/php-sdk-9650
 
       - name: Unit tests
         run: "$TOOLS_DIR/vendor/bin/phpunit --configuration phpunit.xml.dist"

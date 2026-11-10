@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Test\Unit;
 
+use BriizPay\Sdk\Config as SdkConfig;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -115,24 +116,57 @@ class ShippedFilesTest extends TestCase
     }
 
     /**
+     * Hosts live in the PHP SDK. Magento must not keep a second copy that
+     * could disagree with it, and it must still require the SDK branch that
+     * owns them until that SDK is tagged.
+     *
      * @dataProvider hostProvider
      */
     #[DataProvider('hostProvider')]
-    public function testTheClientShipsADistinctHostPerEnvironment(string $declaration): void
+    public function testTheSdkChoosesADistinctHostPerEnvironment(string $apiKey, string $host): void
     {
-        self::assertStringContainsString($declaration, self::read('Model/Api/Client.php'));
+        self::assertSame($host, SdkConfig::fromApiKey($apiKey)->baseUrl);
+        self::assertStringContainsString(
+            'SdkConfig::fromApiKey',
+            self::read('Model/Api/SdkClientFactory.php')
+        );
+        self::assertStringNotContainsString('LIVE_BASE', self::read('Model/Api/Client.php'));
     }
 
     public static function hostProvider(): array
     {
+        $secret = str_repeat('a', 40);
         return [
-            'live' => ["LIVE_BASE = 'https://api.briizpay.com'"],
-            'sandbox' => ["SANDBOX_BASE = 'https://sandbox.api.briizpay.com'"],
-            'test' => ["TEST_BASE = 'https://dev.api.briizpay.com'"],
-            'sandbox is mapped' => ["'sandbox' => self::SANDBOX_BASE"],
-            'test is mapped' => ["'test' => self::TEST_BASE"],
-            'anything else is live' => ['default => self::LIVE_BASE'],
+            'live' => ['bzp_sk_live_' . $secret, 'https://api.briizpay.com'],
+            'sandbox' => ['bzp_sk_sandbox_' . $secret, 'https://sandbox.api.briizpay.com'],
+            'test' => ['bzp_sk_test_' . $secret, 'https://dev.api.briizpay.com'],
+            'anything else is live' => ['nonsense', 'https://api.briizpay.com'],
         ];
+    }
+
+    public function testTheSdkIsRequiredFromItsVcsBranchUntilTagged(): void
+    {
+        $composer = json_decode(self::read('composer.json'), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame('dev-cursor/php-sdk-9650', $composer['require']['briizpay/briizpay-php']);
+        self::assertSame('vcs', $composer['repositories'][0]['type']);
+        self::assertSame('https://github.com/cavewebs/briizpay-php', $composer['repositories'][0]['url']);
+    }
+
+    public function testHttpUsesATwentySecondTimeoutAndTheSdkVerifier(): void
+    {
+        $di = self::read('etc/di.xml');
+
+        self::assertMatchesRegularExpression(
+            '/<argument name="timeout" xsi:type="number">20</',
+            $di
+        );
+        self::assertStringContainsString(
+            'preference for="BriizPay\\Sdk\\Contract\\WebhookVerifierInterface"',
+            $di
+        );
+        self::assertStringContainsString('BriizPay\\PayByBank\\Model\\Http\\CurlClient', $di);
+        self::assertStringContainsString('BriizPay\\PayByBank\\Model\\Http\\Psr17Factory', $di);
     }
 
     public function testPhpEightyFourIsTheMinimum(): void

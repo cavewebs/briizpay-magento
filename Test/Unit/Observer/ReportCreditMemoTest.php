@@ -7,6 +7,9 @@ use BriizPay\PayByBank\Api\ClientInterface;
 use BriizPay\PayByBank\Model\Api\ApiException;
 use BriizPay\PayByBank\Model\Money;
 use BriizPay\PayByBank\Observer\ReportCreditMemo;
+use BriizPay\Sdk\Dto\CreateRefund;
+use BriizPay\Sdk\Dto\Refund;
+use BriizPay\Sdk\Dto\RefundStatus;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
@@ -28,25 +31,31 @@ use Psr\Log\LoggerInterface;
 #[CoversClass(ReportCreditMemo::class)]
 class ReportCreditMemoTest extends TestCase
 {
-    /** @var array<int, array<string, mixed>> */
+    /** @var array<int, CreateRefund> */
     private array $sent = [];
 
     /** @var array<int, string> */
     private array $comments = [];
 
-    /** @param array<string, mixed> $response */
     private function client(
         ?ApiException $throws = null,
-        array $response = ['id' => 'rf_1', 'status' => 'PENDING']
+        ?Refund $response = null
     ): ClientInterface {
+        $refund = $response ?? new Refund(
+            id: 'rf_1',
+            paymentRequestId: 'pr_1',
+            transactionId: '',
+            amountMinor: 1995,
+            status: RefundStatus::Pending
+        );
         $client = $this->createStub(ClientInterface::class);
         $client->method('createRefund')->willReturnCallback(
-            function (array $body) use ($throws, $response): array {
+            function (CreateRefund $body) use ($throws, $refund): Refund {
                 if ($throws) {
                     throw $throws;
                 }
                 $this->sent[] = $body;
-                return $response;
+                return $refund;
             }
         );
         return $client;
@@ -169,9 +178,9 @@ class ReportCreditMemoTest extends TestCase
         $observer->execute($this->observerFor());
 
         self::assertCount(1, $this->sent);
-        self::assertSame('pr_1', $this->sent[0]['paymentRequestId']);
-        self::assertSame(1995, $this->sent[0]['amountMinor'], 'in pence');
-        self::assertSame('Returned', $this->sent[0]['reason']);
+        self::assertSame('pr_1', $this->sent[0]->paymentRequestId);
+        self::assertSame(1995, $this->sent[0]->amountMinor, 'in pence');
+        self::assertSame('Returned', $this->sent[0]->reason);
     }
 
     /** What makes a repeat safe at the other end. */
@@ -180,7 +189,7 @@ class ReportCreditMemoTest extends TestCase
         $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
         $observer->execute($this->observerFor());
 
-        self::assertSame('magento_creditmemo_000000042', $this->sent[0]['externalReference']);
+        self::assertSame('magento_creditmemo_000000042', $this->sent[0]->externalReference);
     }
 
     public function testIgnoresACreditMemoOnAnotherPaymentMethod(): void
@@ -240,11 +249,14 @@ class ReportCreditMemoTest extends TestCase
      */
     public function testRepeatsBriizpaysOwnAnswerToTheMerchant(): void
     {
-        $client = $this->client(null, [
-            'id' => 'rf_1',
-            'status' => 'PENDING',
-            'msg' => 'Send the refund from your bank, then mark it complete in BriizPay.',
-        ]);
+        $client = $this->client(null, new Refund(
+            id: 'rf_1',
+            paymentRequestId: 'pr_1',
+            transactionId: '',
+            amountMinor: 1995,
+            status: RefundStatus::Pending,
+            message: 'Send the refund from your bank, then mark it complete in BriizPay.'
+        ));
         $observer = new ReportCreditMemo($client, new Money(), $this->createStub(LoggerInterface::class));
 
         $observer->execute($this->observerFor());

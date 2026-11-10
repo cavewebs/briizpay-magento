@@ -8,6 +8,7 @@ use BriizPay\PayByBank\Api\MoneyInterface;
 use BriizPay\PayByBank\Model\Api\ApiException;
 use BriizPay\PayByBank\Model\Config;
 use BriizPay\PayByBank\Model\PaymentStarter;
+use BriizPay\Sdk\Dto\CreateRefund;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\Order;
@@ -82,15 +83,15 @@ class ReportCreditMemo implements ObserverInterface
 
         try {
             $response = $this->client->createRefund(
-                [
-                    'paymentRequestId' => $requestId,
-                    'amountMinor' => $amountMinor,
-                    'reason' => (string) ($creditmemo->getCustomerNote() ?: ''),
+                new CreateRefund(
+                    paymentRequestId: $requestId,
+                    amountMinor: $amountMinor,
                     // The store's own id for this refund, which is what makes
                     // a retry return the first refund instead of a second.
-                    'externalReference' => 'magento_creditmemo_'
+                    externalReference: 'magento_creditmemo_'
                         . ($creditmemo->getIncrementId() ?: $creditmemo->getId()),
-                ],
+                    reason: (string) ($creditmemo->getCustomerNote() ?: '')
+                ),
                 (int) $order->getStoreId()
             );
         } catch (ApiException $e) {
@@ -110,9 +111,7 @@ class ReportCreditMemo implements ObserverInterface
         // BriizPay's own words. On the Open Banking rail the money has not
         // moved yet, and saying otherwise is how a customer gets told the
         // wrong thing.
-        $message = isset($response['msg']) && $response['msg']
-            ? (string) $response['msg']
-            : (string) __('Recorded in BriizPay.');
+        $message = $response->instruction() ?: (string) __('Recorded in BriizPay.');
 
         $order->addCommentToStatusHistory('BriizPay: ' . $message);
     }

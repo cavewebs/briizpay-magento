@@ -5,147 +5,98 @@ namespace BriizPay\PayByBank\Model\Api;
 
 use BriizPay\PayByBank\Api\ClientInterface;
 use BriizPay\PayByBank\Model\Config;
-use Magento\Framework\HTTP\Client\CurlFactory;
-use Magento\Framework\Serialize\Serializer\Json;
+use BriizPay\Sdk\ClientInterface as SdkClientInterface;
+use BriizPay\Sdk\Dto\CreatePaymentRequest;
+use BriizPay\Sdk\Dto\CreateRefund;
+use BriizPay\Sdk\Dto\PaymentRequest;
+use BriizPay\Sdk\Dto\Refund;
+use BriizPay\Sdk\Exception\AuthenticationException;
+use BriizPay\Sdk\Exception\BriizPayException;
+use BriizPay\Sdk\Exception\NetworkException;
 use Psr\Log\LoggerInterface;
 
 /**
- * Talking to the BriizPay API.
+ * Magento face of the BriizPay PHP SDK.
  *
- * Every call goes to /v1, the versioned public surface, never to anything the
- * BriizPay dashboard uses. Those change with the dashboard, and a module sitting
- * in stores that update when they choose cannot ship in step with them.
- *
- * Failures are turned into ApiException with a message fit for a shopper; the
- * real response goes to the log.
+ * Builds a store-scoped SDK client, maps typed exceptions to ApiException
+ * with a message fit for a shopper, and logs the rest.
  *
  * @api
  */
 class Client implements ClientInterface
 {
-    private const LIVE_BASE = 'https://api.briizpay.com';
-    private const SANDBOX_BASE = 'https://sandbox.api.briizpay.com';
-    private const TEST_BASE = 'https://dev.api.briizpay.com';
-
     public function __construct(
         private readonly Config $config,
-        private readonly CurlFactory $curlFactory,
-        private readonly Json $json,
+        private readonly SdkClientFactory $sdkFactory,
         private readonly LoggerInterface $logger
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $body amountMinor (pence), currency, externalReference,
-     *                                   customerName, customerEmail, memo, returnUrl
-     * @return array<string, mixed> the payment request, including id and payUrl
-     */
-    public function createPaymentRequest(array $body, ?int $storeId = null): array
+    public function createPaymentRequest(CreatePaymentRequest $request, ?int $storeId = null): PaymentRequest
     {
-        return $this->request('POST', '/v1/payment-requests', $body, $storeId);
+        try {
+            return $this->sdk($storeId)->createPaymentRequest($request);
+        } catch (BriizPayException $e) {
+            throw $this->wrap($e);
+        }
     }
 
-    /** @return array<string, mixed> */
-    public function getPaymentRequest(string $id, ?int $storeId = null): array
+    public function getPaymentRequest(string $id, ?int $storeId = null): PaymentRequest
     {
-        return $this->request('GET', '/v1/payment-requests/' . rawurlencode($id), null, $storeId);
+        try {
+            return $this->sdk($storeId)->getPaymentRequest($id);
+        } catch (BriizPayException $e) {
+            throw $this->wrap($e);
+        }
     }
 
-    /**
-     * Tell BriizPay the store has refunded an order.
-     *
-     * Records a refund against the payment. It does not move money on its own:
-     * what happens depends on the rail, and the response says which, which is
-     * what the order comment repeats. See briizpay-api
-     * docs/decisions/refunds.md.
-     *
-     * @param array<string, mixed> $body
-     * @return array<string, mixed>
-     */
-    public function createRefund(array $body, ?int $storeId = null): array
+    public function createRefund(CreateRefund $request, ?int $storeId = null): Refund
     {
-        return $this->request('POST', '/v1/refunds', $body, $storeId);
+        try {
+            return $this->sdk($storeId)->createRefund($request);
+        } catch (BriizPayException $e) {
+            throw $this->wrap($e);
+        }
     }
 
-    /**
-     * Stop a payment being payable, so a customer who wanders back to a stale
-     * link cannot pay for an order the store has dropped.
-     *
-     * @return array<string, mixed>
-     */
-    public function cancelPaymentRequest(string $id, ?int $storeId = null): array
+    public function cancelPaymentRequest(string $id, ?int $storeId = null): PaymentRequest
     {
-        return $this->request(
-            'POST',
-            '/v1/payment-requests/' . rawurlencode($id) . '/cancel',
-            new \stdClass(),
-            $storeId
-        );
+        try {
+            return $this->sdk($storeId)->cancelPaymentRequest($id);
+        } catch (BriizPayException $e) {
+            throw $this->wrap($e);
+        }
     }
 
-    /**
-     * @param array<string, mixed>|\stdClass|null $body
-     * @return array<string, mixed>
-     */
-    private function request(string $method, string $path, array|\stdClass|null $body, ?int $storeId): array
+    private function sdk(?int $storeId): SdkClientInterface
     {
         if (!$this->config->hasValidApiKey($storeId)) {
             throw new ApiException(__('BriizPay is not set up yet. Please choose another payment method.'));
         }
+        return $this->sdkFactory->create($this->config->getApiKey($storeId));
+    }
 
-        $key = $this->config->getApiKey($storeId);
-        // The key alone decides the host. A sandbox key reaching the
-        // development API, which is what happened while sandbox shared the
-        // 'test' segment, succeeds against the wrong environment and looks fine.
-        $base = match ($this->config->environment($storeId)) {
-            'sandbox' => self::SANDBOX_BASE,
-            'test' => self::TEST_BASE,
-            default => self::LIVE_BASE,
-        };
-
-        $curl = $this->curlFactory->create();
-        $curl->setTimeout(20);
-        $curl->addHeader('Authorization', 'Bearer ' . $key);
-        $curl->addHeader('Content-Type', 'application/json');
-        $curl->addHeader('Accept', 'application/json');
-        $curl->addHeader('User-Agent', 'BriizPay-Magento/1.0.0');
-
-        try {
-            if ($method === 'GET') {
-                $curl->get($base . $path);
-            } else {
-                $curl->post($base . $path, $this->json->serialize($body ?? new \stdClass()));
-            }
-        } catch (\Throwable $e) {
+    private function wrap(BriizPayException $e): ApiException
+    {
+        if ($e instanceof NetworkException) {
             $this->logger->error('[BriizPay] Request failed: ' . $e->getMessage());
-            throw new ApiException(__('Could not reach BriizPay. Please try again.'));
+            return new ApiException(__('Could not reach BriizPay. Please try again.'));
         }
 
-        $status = (int) $curl->getStatus();
-        $raw = (string) $curl->getBody();
-        try {
-            $parsed = $raw === '' ? [] : $this->json->unserialize($raw);
-        } catch (\Throwable) {
-            $parsed = [];
-        }
-        $parsed = is_array($parsed) ? $parsed : [];
+        $this->logger->error(sprintf('[BriizPay] HTTP %d: %s', $e->statusCode, $e->getMessage()));
 
-        if ($status >= 200 && $status < 300) {
-            return isset($parsed['data']) && is_array($parsed['data']) ? $parsed['data'] : $parsed;
+        if ($e instanceof AuthenticationException && $e->statusCode === 401) {
+            return new ApiException(
+                __('BriizPay rejected the API key. Please choose another payment method.'),
+                401
+            );
         }
 
-        $this->logger->error(sprintf('[BriizPay] HTTP %d from %s: %s', $status, $path, $raw));
-
-        if ($status === 401) {
-            throw new ApiException(__('BriizPay rejected the API key. Please choose another payment method.'));
-        }
-
-        // The API answers errors as { msg }, written for people. Anything else
-        // is infrastructure talking and not for a shopper.
-        $message = isset($parsed['msg']) && is_string($parsed['msg'])
-            ? $parsed['msg']
+        $message = $e->getMessage() !== ''
+            ? $e->getMessage()
             : (string) __('BriizPay could not take this payment right now.');
 
-        throw new ApiException(__($message), $status);
+        // phpcs:ignore Magento2.Translation.ConstantUsage -- BriizPay's own English, or the fallback literal above
+        return new ApiException(__($message), $e->statusCode);
     }
 }
