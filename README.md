@@ -158,6 +158,9 @@ and it is the first thing a new merchant reads about the product.
 
 The full history is in [CHANGELOG.md](CHANGELOG.md). The highlights:
 
+- **2.0.0**: PHP 8.4 is the minimum. The module talks to BriizPay through the
+  PHP SDK, the arithmetic helpers are Magento services, and a paid order stores
+  BriizPay's transaction ID on the Magento payment and in Sales > Transactions.
 - **1.2.0**: Routes to the right BriizPay from the key alone: `bzp_sk_sandbox_`
   keys now reach the BriizPay sandbox, where a store can place a test order
   before going live. Live keys are unaffected, and existing `bzp_sk_test_` keys

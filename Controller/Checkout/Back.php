@@ -76,10 +76,11 @@ class Back implements HttpGetActionInterface
             try {
                 $paymentRequest = $this->client->getPaymentRequest($requestId, (int) $order->getStoreId());
                 $status = $paymentRequest->status->value;
-                $data = [
-                    'amountMinor' => $paymentRequest->amount->amountMinor,
-                    'transactionId' => $paymentRequest->transactionId ?? '',
-                ];
+                $data = ['amountMinor' => $paymentRequest->amount->amountMinor];
+                $transactionId = $paymentRequest->getTransactionId();
+                if ($transactionId !== null && $transactionId !== '') {
+                    $data['transactionId'] = $transactionId;
+                }
             } catch (\Throwable $e) {
                 $this->logger->warning(
                     '[BriizPay] Status check failed for order '

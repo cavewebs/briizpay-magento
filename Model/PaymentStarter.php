@@ -29,6 +29,7 @@ class PaymentStarter
 {
     public const INFO_REQUEST_ID = 'briizpay_payment_request_id';
     public const INFO_PAY_URL = 'briizpay_pay_url';
+    public const INFO_TRANSACTION_ID = 'briizpay_transaction_id';
 
     public function __construct(
         private readonly ClientInterface $client,

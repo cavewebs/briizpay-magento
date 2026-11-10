@@ -173,6 +173,7 @@ class ShippedFilesTest extends TestCase
     {
         $composer = json_decode(self::read('composer.json'), true, 512, JSON_THROW_ON_ERROR);
 
+        self::assertSame('2.0.0', $composer['version']);
         self::assertMatchesRegularExpression('/~8\\.4\\.0/', $composer['require']['php']);
         self::assertDoesNotMatchRegularExpression('/~8\\.[123]\\./', $composer['require']['php']);
     }

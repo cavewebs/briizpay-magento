@@ -121,8 +121,9 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         if ($event->data->amountMinor !== null) {
             $data['amountMinor'] = $event->data->amountMinor;
         }
-        if ($event->data->transactionId) {
-            $data['transactionId'] = $event->data->transactionId;
+        $transactionId = $event->data->getTransactionId();
+        if ($transactionId !== null && $transactionId !== '') {
+            $data['transactionId'] = $transactionId;
         }
         return $data;
     }

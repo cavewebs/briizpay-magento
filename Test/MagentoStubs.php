@@ -364,6 +364,82 @@ namespace Magento\Sales\Api {
         interface OrderRepositoryInterface
         {
             public function get($id);
+
+            public function save($entity);
+        }
+    }
+}
+
+namespace Magento\Sales\Model {
+    if (!class_exists(Order::class)) {
+        class Order extends \Magento\Framework\DataObject
+        {
+            public const STATE_PROCESSING = 'processing';
+
+            public const STATE_COMPLETE = 'complete';
+
+            public const STATE_CLOSED = 'closed';
+
+            public const STATE_PENDING_PAYMENT = 'pending_payment';
+        }
+    }
+}
+
+namespace Magento\Sales\Model\Order {
+    if (!class_exists(Invoice::class)) {
+        class Invoice
+        {
+            public const CAPTURE_OFFLINE = 'offline';
+        }
+    }
+}
+
+namespace Magento\Sales\Model\Order\Payment {
+    if (!class_exists(Transaction::class)) {
+        class Transaction
+        {
+            public const TYPE_CAPTURE = 'capture';
+
+            public const TYPE_REFUND = 'refund';
+        }
+    }
+}
+
+namespace Magento\Sales\Model\Service {
+    if (!class_exists(InvoiceService::class)) {
+        class InvoiceService
+        {
+            public function prepareInvoice($order)
+            {
+                return null;
+            }
+        }
+    }
+}
+
+namespace Magento\Framework\DB {
+    if (!class_exists(Transaction::class)) {
+        class Transaction
+        {
+            public function addObject($object)
+            {
+                return $this;
+            }
+
+            public function save()
+            {
+                return $this;
+            }
+        }
+    }
+
+    if (!class_exists(TransactionFactory::class)) {
+        class TransactionFactory
+        {
+            public function create()
+            {
+                return new Transaction();
+            }
         }
     }
 }

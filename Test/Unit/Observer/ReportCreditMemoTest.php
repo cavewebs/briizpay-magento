@@ -6,6 +6,7 @@ namespace BriizPay\PayByBank\Test\Unit\Observer;
 use BriizPay\PayByBank\Api\ClientInterface;
 use BriizPay\PayByBank\Model\Api\ApiException;
 use BriizPay\PayByBank\Model\Money;
+use BriizPay\PayByBank\Model\PaymentStarter;
 use BriizPay\PayByBank\Observer\ReportCreditMemo;
 use BriizPay\Sdk\Dto\CreateRefund;
 use BriizPay\Sdk\Dto\Refund;
@@ -44,7 +45,6 @@ class ReportCreditMemoTest extends TestCase
         $refund = $response ?? new Refund(
             id: 'rf_1',
             paymentRequestId: 'pr_1',
-            transactionId: '',
             amountMinor: 1995,
             status: RefundStatus::Pending
         );
@@ -79,20 +79,61 @@ class ReportCreditMemoTest extends TestCase
             'note' => 'Returned',
             'incrementId' => '000000042',
             'reported' => null,
+            'lastTransId' => '',
         ], $over);
 
         $comments = &$this->comments;
 
-        $paymentData = ['method' => $settings['method'], 'requestId' => $settings['requestId']];
+        $paymentData = [
+            'method' => $settings['method'],
+            'requestId' => $settings['requestId'],
+            'lastTransId' => $settings['lastTransId'],
+        ];
         $payment = new class ($paymentData) extends DataObject {
+            /** @var array<int, array<string, mixed>> */
+            public array $transactions = [];
+
             public function getMethod(): string
             {
                 return (string) $this->getData('method');
             }
 
+            public function getLastTransId(): string
+            {
+                return (string) $this->getData('lastTransId');
+            }
+
+            public function setLastTransId($id): static
+            {
+                return $this->setData('lastTransId', $id);
+            }
+
+            public function setTransactionId($id): static
+            {
+                return $this->setData('transactionId', $id);
+            }
+
+            public function setParentTransactionId($id): static
+            {
+                return $this->setData('parentTransactionId', $id);
+            }
+
+            public function addTransaction($type, $document = false, $failSafe = false)
+            {
+                $this->transactions[] = [
+                    'type' => $type,
+                    'txn_id' => $this->getData('transactionId'),
+                    'parent' => $this->getData('parentTransactionId'),
+                ];
+                return $this;
+            }
+
             public function getAdditionalInformation($key = null)
             {
-                return $this->getData('requestId');
+                if ($key === PaymentStarter::INFO_REQUEST_ID) {
+                    return $this->getData('requestId');
+                }
+                return $this->getData($key);
             }
         };
 
@@ -252,7 +293,6 @@ class ReportCreditMemoTest extends TestCase
         $client = $this->client(null, new Refund(
             id: 'rf_1',
             paymentRequestId: 'pr_1',
-            transactionId: '',
             amountMinor: 1995,
             status: RefundStatus::Pending,
             message: 'Send the refund from your bank, then mark it complete in BriizPay.'
@@ -264,5 +304,18 @@ class ReportCreditMemoTest extends TestCase
         $said = implode(' ', $this->comments);
         self::assertStringContainsString('Send the refund from your bank', $said);
         self::assertDoesNotMatchRegularExpression('/\brefunded\b/i', $said, 'never claims the money has moved');
+    }
+
+    public function testParentsTheRefundOnTheStoredCapture(): void
+    {
+        $event = $this->observerFor(['lastTransId' => 'txn_abc']);
+        $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
+        $observer->execute($event);
+
+        $payment = $event->getEvent()->getCreditmemo()->getOrder()->getPayment();
+        self::assertSame(
+            [['type' => 'refund', 'txn_id' => 'txn_abc-refund', 'parent' => 'txn_abc']],
+            $payment->transactions
+        );
     }
 }

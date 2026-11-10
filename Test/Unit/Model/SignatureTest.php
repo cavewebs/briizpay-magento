@@ -152,6 +152,7 @@ class SignatureTest extends TestCase
         self::assertSame('req_1', $event->data->paymentRequestId);
         self::assertSame('000000042', $event->data->externalReference);
         self::assertSame(1499, $event->data->amountMinor);
+        self::assertNull($event->data->getTransactionId());
         self::assertNull($event->data->transactionId);
     }
 }

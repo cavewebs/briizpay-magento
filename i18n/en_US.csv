@@ -19,6 +19,7 @@
 "BriizPay payment was not completed (%1).","BriizPay payment was not completed (%1)."
 "BriizPay rejected the API key. Please choose another payment method.","BriizPay rejected the API key. Please choose another payment method."
 "BriizPay reported %1 paid against an order total of %2. Held for review.","BriizPay reported %1 paid against an order total of %2. Held for review."
+"BriizPay transaction ID: %1","BriizPay transaction ID: %1"
 "Could not reach BriizPay. Please try again.","Could not reach BriizPay. Please try again."
 "Create a BriizPay account and complete the short business verification.","Create a BriizPay account and complete the short business verification."
 "Description","Description"

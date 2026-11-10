@@ -11,8 +11,8 @@ use BriizPay\PayByBank\Model\PaymentStarter;
 use BriizPay\Sdk\Dto\CreateRefund;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
-use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Creditmemo;
+use Magento\Sales\Model\Order\Payment\Transaction;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -114,5 +114,35 @@ class ReportCreditMemo implements ObserverInterface
         $message = $response->instruction() ?: (string) __('Recorded in BriizPay.');
 
         $order->addCommentToStatusHistory('BriizPay: ' . $message);
+
+        $this->linkRefundToCapture($order->getPayment(), $creditmemo, $response->getTransactionId());
+    }
+
+    /**
+     * Magento's refund row sits under the capture whose txn_id is the BriizPay
+     * payment id, so Sales > Transactions shows them as parent and child.
+     */
+    private function linkRefundToCapture(mixed $payment, object $creditmemo, ?string $fromRefund): void
+    {
+        if (!is_object($payment)) {
+            return;
+        }
+
+        $parentId = (string) $payment->getLastTransId();
+        if ($parentId === '') {
+            $parentId = (string) $payment->getAdditionalInformation(PaymentStarter::INFO_TRANSACTION_ID);
+        }
+        if ($parentId === '' && $fromRefund) {
+            $parentId = $fromRefund;
+        }
+        if ($parentId === '') {
+            return;
+        }
+
+        $refundTxnId = $parentId . '-refund';
+        $creditmemo->setTransactionId($refundTxnId);
+        $payment->setParentTransactionId($parentId);
+        $payment->setTransactionId($refundTxnId);
+        $payment->addTransaction(Transaction::TYPE_REFUND, $creditmemo);
     }
 }

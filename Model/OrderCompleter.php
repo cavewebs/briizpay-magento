@@ -8,6 +8,7 @@ use Magento\Framework\DB\TransactionFactory;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Invoice;
+use Magento\Sales\Model\Order\Payment\Transaction;
 use Magento\Sales\Model\Service\InvoiceService;
 use Psr\Log\LoggerInterface;
 
@@ -17,7 +18,8 @@ use Psr\Log\LoggerInterface;
  * Shared by the webhook and the return page, so whichever arrives first wins and
  * the other finds the order already invoiced and does nothing. Paid means: an
  * invoice captured offline (the money went bank to bank, nothing is left to
- * capture), the order in Processing, and the BriizPay transaction id recorded.
+ * capture), the order in Processing, and the BriizPay transaction id recorded
+ * on the payment and in Sales, Transactions when BriizPay sent one.
  */
 class OrderCompleter
 {
@@ -36,8 +38,13 @@ class OrderCompleter
      */
     public function complete(Order $order, array $data, string $source): bool
     {
+        $transactionId = $this->transactionIdFrom($data);
+
         $settled = [Order::STATE_PROCESSING, Order::STATE_COMPLETE, Order::STATE_CLOSED];
         if ($order->hasInvoices() || in_array($order->getState(), $settled, true)) {
+            if ($this->rememberTransactionId($order, $transactionId)) {
+                $this->orders->save($order);
+            }
             return false;
         }
 
@@ -68,21 +75,8 @@ class OrderCompleter
             $order->unhold();
         }
 
-        // Optional. The API's present() does not currently send transactionId.
-        // A missing value still marks the order paid; Magento just records no
-        // gateway txn id on the payment or the invoice.
-        $transactionId = isset($data['transactionId']) ? (string) $data['transactionId'] : '';
-        $payment = $order->getPayment();
-        if ($transactionId !== '') {
-            $payment->setTransactionId($transactionId);
-            $payment->setLastTransId($transactionId);
-        }
-
         $invoice = $this->invoiceService->prepareInvoice($order);
         $invoice->setRequestedCaptureCase(Invoice::CAPTURE_OFFLINE);
-        if ($transactionId !== '') {
-            $invoice->setTransactionId($transactionId);
-        }
         $invoice->register();
         $invoice->pay();
 
@@ -93,10 +87,57 @@ class OrderCompleter
             // "the customer was not emailed about this comment".
             ->setIsCustomerNotified(0);
 
+        $this->rememberTransactionId($order, $transactionId, $invoice);
+
         $this->transactionFactory->create()
             ->addObject($invoice)
             ->addObject($order)
             ->save();
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function transactionIdFrom(array $data): string
+    {
+        if (!isset($data['transactionId']) || $data['transactionId'] === null) {
+            return '';
+        }
+        return trim((string) $data['transactionId']);
+    }
+
+    /**
+     * last_trans_id, a Sales > Transactions capture, and an order comment.
+     * A second notification for the same id is a no-op.
+     *
+     * @return bool true when this call wrote the id
+     */
+    private function rememberTransactionId(Order $order, string $transactionId, mixed $invoice = null): bool
+    {
+        if ($transactionId === '') {
+            return false;
+        }
+
+        $payment = $order->getPayment();
+        $stored = (string) $payment->getAdditionalInformation(PaymentStarter::INFO_TRANSACTION_ID);
+
+        $payment->setTransactionId($transactionId);
+        $payment->setLastTransId($transactionId);
+        if (is_object($invoice)) {
+            $invoice->setTransactionId($transactionId);
+        }
+
+        if ($stored === $transactionId) {
+            return false;
+        }
+
+        $payment->setAdditionalInformation(PaymentStarter::INFO_TRANSACTION_ID, $transactionId);
+        $payment->addTransaction(Transaction::TYPE_CAPTURE, $invoice ?: false);
+
+        $order->addCommentToStatusHistory((string) __('BriizPay transaction ID: %1', $transactionId))
+            ->setIsCustomerNotified(0);
 
         return true;
     }
