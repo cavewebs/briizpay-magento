@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Plugin\Quote;
 
-use BriizPay\PayByBank\Model\DiscountCalculator;
+use BriizPay\PayByBank\Api\DiscountCalculatorInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Api\CartTotalRepositoryInterface;
 use Magento\Quote\Api\Data\TotalsExtensionFactory;
@@ -27,7 +27,7 @@ class AddDiscountOffer
 {
     public function __construct(
         private readonly CartRepositoryInterface $quotes,
-        private readonly DiscountCalculator $calculator,
+        private readonly DiscountCalculatorInterface $calculator,
         private readonly TotalsExtensionFactory $extensionFactory,
         private readonly LoggerInterface $logger
     ) {

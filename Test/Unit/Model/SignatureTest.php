@@ -19,10 +19,10 @@ use PHPUnit\Framework\TestCase;
  * instead of every store silently rejecting every payment notification.
  *
  * Both the attribute and the annotation are present throughout, on purpose.
- * This module supports Magento 2.4.6 to 2.4.9, which ships PHPUnit 9 through
- * 12: PHPUnit 9 reads the annotation and ignores the attribute, PHPUnit 10 and
- * later read the attribute and no longer apply the annotation. With only one
- * of them the suite silently runs no data sets on half the supported range.
+ * This module supports Magento 2.4.8 to 2.4.9, which ships PHPUnit 10 through
+ * 12: PHPUnit 10 reads the annotation and the attribute, PHPUnit 11 and later
+ * read the attribute and no longer apply the annotation. With only one of
+ * them the suite silently runs no data sets on half the supported range.
  *
  * @covers \BriizPay\PayByBank\Model\Signature
  */

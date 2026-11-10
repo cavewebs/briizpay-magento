@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Plugin\Quote;
 
+use BriizPay\PayByBank\Api\DiscountCalculatorInterface;
 use BriizPay\PayByBank\Model\Discount;
-use BriizPay\PayByBank\Model\DiscountCalculator;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\QuoteManagement;
 
@@ -31,7 +31,7 @@ use Magento\Quote\Model\QuoteManagement;
 class RecollectStaleDiscount
 {
     public function __construct(
-        private readonly DiscountCalculator $calculator
+        private readonly DiscountCalculatorInterface $calculator
     ) {
     }
 

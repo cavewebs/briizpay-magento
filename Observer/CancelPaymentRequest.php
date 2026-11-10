@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Observer;
 
-use BriizPay\PayByBank\Model\Api\Client;
+use BriizPay\PayByBank\Api\ClientInterface;
 use BriizPay\PayByBank\Model\Config;
 use BriizPay\PayByBank\Model\PaymentStarter;
 use Magento\Framework\Event\Observer;
@@ -26,7 +26,7 @@ use Psr\Log\LoggerInterface;
 class CancelPaymentRequest implements ObserverInterface
 {
     public function __construct(
-        private readonly Client $client,
+        private readonly ClientInterface $client,
         private readonly LoggerInterface $logger
     ) {
     }

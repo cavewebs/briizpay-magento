@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model\Total\Quote;
 
+use BriizPay\PayByBank\Api\DiscountCalculatorInterface;
 use BriizPay\PayByBank\Model\Discount;
-use BriizPay\PayByBank\Model\DiscountCalculator;
 use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address\Total;
@@ -28,7 +28,7 @@ use Magento\Quote\Model\Quote\Address\Total\AbstractTotal;
 class PayByBankDiscount extends AbstractTotal
 {
     public function __construct(
-        private readonly DiscountCalculator $calculator
+        private readonly DiscountCalculatorInterface $calculator
     ) {
         $this->setCode(Discount::TOTAL_CODE);
     }

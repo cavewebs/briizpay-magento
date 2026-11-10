@@ -135,6 +135,36 @@ class ShippedFilesTest extends TestCase
         ];
     }
 
+    public function testPhpEightyFourIsTheMinimum(): void
+    {
+        $composer = json_decode(self::read('composer.json'), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertMatchesRegularExpression('/~8\\.4\\.0/', $composer['require']['php']);
+        self::assertDoesNotMatchRegularExpression('/~8\\.[123]\\./', $composer['require']['php']);
+    }
+
+    public function testTheHelpersAreWiredAsPreferences(): void
+    {
+        $di = self::read('etc/di.xml');
+        $preferences = [
+            'BriizPay\\PayByBank\\Api\\ClientInterface' => 'BriizPay\\PayByBank\\Model\\Api\\Client',
+            'BriizPay\\PayByBank\\Api\\MoneyInterface' => 'BriizPay\\PayByBank\\Model\\Money',
+            'BriizPay\\PayByBank\\Api\\DiscountInterface' => 'BriizPay\\PayByBank\\Model\\Discount',
+            'BriizPay\\PayByBank\\Api\\LineItemsInterface' => 'BriizPay\\PayByBank\\Model\\LineItems',
+            'BriizPay\\PayByBank\\Api\\DocumentItemsInterface' => 'BriizPay\\PayByBank\\Model\\Total\\DocumentItems',
+            'BriizPay\\PayByBank\\Api\\DiscountCalculatorInterface' => 'BriizPay\\PayByBank\\Model\\DiscountCalculator',
+        ];
+
+        foreach ($preferences as $contract => $implementation) {
+            self::assertMatchesRegularExpression(
+                '/preference for="' . preg_quote($contract, '/')
+                . '" type="' . preg_quote($implementation, '/') . '"/',
+                $di,
+                $contract . ' must be preferred to ' . $implementation
+            );
+        }
+    }
+
     /** The first-run guidance only reaches a merchant if both places are wired up. */
     public function testTheFirstRunGuidanceIsWiredIntoTheAdmin(): void
     {
@@ -225,7 +255,7 @@ class ShippedFilesTest extends TestCase
     private static function phpFiles(): array
     {
         $files = [];
-        $directories = ['Block', 'Controller', 'Gateway', 'Model', 'Observer', 'Plugin'];
+        $directories = ['Api', 'Block', 'Controller', 'Gateway', 'Model', 'Observer', 'Plugin'];
         foreach ($directories as $directory) {
             $path = self::root() . '/' . $directory;
             if (!is_dir($path)) {

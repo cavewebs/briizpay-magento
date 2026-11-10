@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model;
 
-use BriizPay\PayByBank\Model\Api\Client;
+use BriizPay\PayByBank\Api\ClientInterface;
+use BriizPay\PayByBank\Api\LineItemsInterface;
+use BriizPay\PayByBank\Api\MoneyInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
@@ -26,7 +28,9 @@ class PaymentStarter
     public const INFO_PAY_URL = 'briizpay_pay_url';
 
     public function __construct(
-        private readonly Client $client,
+        private readonly ClientInterface $client,
+        private readonly LineItemsInterface $lineItems,
+        private readonly MoneyInterface $money,
         private readonly UrlInterface $url,
         private readonly OrderRepositoryInterface $orders,
         private readonly ReturnToken $returnToken
@@ -46,7 +50,7 @@ class PaymentStarter
         $name = $billing ? trim($billing->getFirstname() . ' ' . $billing->getLastname()) : '';
 
         $body = [
-            'amountMinor' => Money::toMinor($order->getGrandTotal()),
+            'amountMinor' => $this->money->toMinor($order->getGrandTotal()),
             'currency' => (string) $order->getOrderCurrencyCode(),
             'externalReference' => (string) $order->getIncrementId(),
             // The store knows who is buying. Without this the merchant sees a
@@ -66,7 +70,7 @@ class PaymentStarter
         ];
         // What was bought, for the customer's receipt. Any difference from the
         // grand total is its own line, so the lines always add up to it.
-        $lines = LineItems::forOrder($order);
+        $lines = $this->lineItems->forOrder($order);
         if ($lines !== null) {
             $body['lineItems'] = $lines;
         }

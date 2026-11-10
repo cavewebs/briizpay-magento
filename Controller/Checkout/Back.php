@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Controller\Checkout;
 
-use BriizPay\PayByBank\Model\Api\Client;
+use BriizPay\PayByBank\Api\ClientInterface;
 use BriizPay\PayByBank\Model\Config;
 use BriizPay\PayByBank\Model\OrderCompleter;
 use BriizPay\PayByBank\Model\PaymentStarter;
@@ -33,7 +33,7 @@ class Back implements HttpGetActionInterface
         private readonly RequestInterface $request,
         private readonly OrderFactory $orderFactory,
         private readonly ReturnToken $returnToken,
-        private readonly Client $client,
+        private readonly ClientInterface $client,
         private readonly OrderCompleter $completer,
         private readonly CheckoutSession $checkoutSession,
         private readonly RedirectFactory $redirectFactory,

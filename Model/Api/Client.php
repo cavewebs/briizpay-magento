@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model\Api;
 
+use BriizPay\PayByBank\Api\ClientInterface;
 use BriizPay\PayByBank\Model\Config;
 use Magento\Framework\HTTP\Client\CurlFactory;
 use Magento\Framework\Serialize\Serializer\Json;
@@ -20,7 +21,7 @@ use Psr\Log\LoggerInterface;
  *
  * @api
  */
-class Client
+class Client implements ClientInterface
 {
     private const LIVE_BASE = 'https://api.briizpay.com';
     private const SANDBOX_BASE = 'https://sandbox.api.briizpay.com';

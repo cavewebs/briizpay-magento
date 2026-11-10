@@ -224,6 +224,70 @@ namespace Magento\Framework\Serialize\Serializer {
     }
 }
 
+namespace Magento\Quote\Model {
+    if (!class_exists(Quote::class)) {
+        class Quote
+        {
+            public function getPayment()
+            {
+                return null;
+            }
+
+            public function getStoreId()
+            {
+                return null;
+            }
+        }
+    }
+}
+
+namespace Magento\Quote\Model\Quote {
+    if (!class_exists(Payment::class)) {
+        class Payment
+        {
+            public function getMethod()
+            {
+                return null;
+            }
+        }
+    }
+}
+
+namespace Magento\Quote\Api\Data {
+    if (!interface_exists(CartItemInterface::class)) {
+        interface CartItemInterface
+        {
+        }
+    }
+}
+
+namespace Magento\Quote\Model\Quote\Item {
+    if (!class_exists(AbstractItem::class)) {
+        class AbstractItem
+        {
+            public function getParentItem()
+            {
+                return null;
+            }
+
+            public function getHasChildren()
+            {
+                return false;
+            }
+
+            public function isChildrenCalculated()
+            {
+                return false;
+            }
+
+            public function getChildren()
+            {
+                return [];
+            }
+        }
+    }
+}
+
 namespace Magento\Sales\Api {
     if (!interface_exists(OrderRepositoryInterface::class)) {
         interface OrderRepositoryInterface

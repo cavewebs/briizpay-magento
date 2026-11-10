@@ -11,6 +11,19 @@ merge, then tag `vX.Y.Z` on that commit.
 
 ## [Unreleased]
 
+### Changed
+
+- The arithmetic helpers (pence conversion, the pay by bank discount, the
+  receipt lines, and the document items total) are injectable Magento services
+  behind interfaces, wired in `etc/di.xml`, so Magento plugins can intercept
+  them. Behaviour is unchanged.
+- `DiscountCalculator::isPaidByBank()` is an instance method on the same
+  service the totals already use.
+- The BriizPay API client implements `ClientInterface`. A later swap to the
+  standalone PHP SDK (`cavewebs/briizpay-php`) is a preference change; this
+  module still talks in arrays.
+- PHP 8.4 is the minimum. CI runs on 8.4 and 8.5.
+
 ### Added
 
 - PHPUnit tests under `Test/Unit`, runnable by `bin/magento dev:tests:run unit`

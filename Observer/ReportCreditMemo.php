@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Observer;
 
+use BriizPay\PayByBank\Api\ClientInterface;
+use BriizPay\PayByBank\Api\MoneyInterface;
 use BriizPay\PayByBank\Model\Api\ApiException;
-use BriizPay\PayByBank\Model\Api\Client;
 use BriizPay\PayByBank\Model\Config;
-use BriizPay\PayByBank\Model\Money;
 use BriizPay\PayByBank\Model\PaymentStarter;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
@@ -41,7 +41,8 @@ class ReportCreditMemo implements ObserverInterface
     public const REPORTED_FLAG = 'briizpay_refund_reported';
 
     public function __construct(
-        private readonly Client $client,
+        private readonly ClientInterface $client,
+        private readonly MoneyInterface $money,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -70,7 +71,7 @@ class ReportCreditMemo implements ObserverInterface
             return;
         }
 
-        $amountMinor = Money::toMinor((float) $creditmemo->getGrandTotal());
+        $amountMinor = $this->money->toMinor((float) $creditmemo->getGrandTotal());
         if ($amountMinor <= 0) {
             return;
         }

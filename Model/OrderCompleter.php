@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Model;
 
+use BriizPay\PayByBank\Api\MoneyInterface;
 use Magento\Framework\DB\TransactionFactory;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
@@ -24,7 +25,8 @@ class OrderCompleter
         private readonly InvoiceService $invoiceService,
         private readonly TransactionFactory $transactionFactory,
         private readonly OrderRepositoryInterface $orders,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly MoneyInterface $money
     ) {
     }
 
@@ -42,7 +44,7 @@ class OrderCompleter
         // The amount is checked, not assumed. An event that only said "order 41
         // is paid" would ask the store to trust a number it never saw.
         if (isset($data['amountMinor'])) {
-            $expected = Money::toMinor($order->getGrandTotal());
+            $expected = $this->money->toMinor($order->getGrandTotal());
             $paid = (int) $data['amountMinor'];
             if ($paid < $expected) {
                 $order->hold();

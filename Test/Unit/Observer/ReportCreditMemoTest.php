@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace BriizPay\PayByBank\Test\Unit\Observer;
 
+use BriizPay\PayByBank\Api\ClientInterface;
 use BriizPay\PayByBank\Model\Api\ApiException;
-use BriizPay\PayByBank\Model\Api\Client;
+use BriizPay\PayByBank\Model\Money;
 use BriizPay\PayByBank\Observer\ReportCreditMemo;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event;
@@ -37,8 +38,8 @@ class ReportCreditMemoTest extends TestCase
     private function client(
         ?ApiException $throws = null,
         array $response = ['id' => 'rf_1', 'status' => 'PENDING']
-    ): Client {
-        $client = $this->createStub(Client::class);
+    ): ClientInterface {
+        $client = $this->createStub(ClientInterface::class);
         $client->method('createRefund')->willReturnCallback(
             function (array $body) use ($throws, $response): array {
                 if ($throws) {
@@ -164,7 +165,7 @@ class ReportCreditMemoTest extends TestCase
 
     public function testReportsTheRefundAgainstThePaymentItBelongsTo(): void
     {
-        $observer = new ReportCreditMemo($this->client(), $this->createStub(LoggerInterface::class));
+        $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
         $observer->execute($this->observerFor());
 
         self::assertCount(1, $this->sent);
@@ -176,7 +177,7 @@ class ReportCreditMemoTest extends TestCase
     /** What makes a repeat safe at the other end. */
     public function testSendsTheStoresOwnIdForTheMemo(): void
     {
-        $observer = new ReportCreditMemo($this->client(), $this->createStub(LoggerInterface::class));
+        $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
         $observer->execute($this->observerFor());
 
         self::assertSame('magento_creditmemo_000000042', $this->sent[0]['externalReference']);
@@ -184,7 +185,7 @@ class ReportCreditMemoTest extends TestCase
 
     public function testIgnoresACreditMemoOnAnotherPaymentMethod(): void
     {
-        $observer = new ReportCreditMemo($this->client(), $this->createStub(LoggerInterface::class));
+        $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
         $observer->execute($this->observerFor(['method' => 'checkmo']));
 
         self::assertSame([], $this->sent);
@@ -192,7 +193,7 @@ class ReportCreditMemoTest extends TestCase
 
     public function testIgnoresAnOrderWithNoBriizpayPayment(): void
     {
-        $observer = new ReportCreditMemo($this->client(), $this->createStub(LoggerInterface::class));
+        $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
         $observer->execute($this->observerFor(['requestId' => '']));
 
         self::assertSame([], $this->sent);
@@ -201,7 +202,7 @@ class ReportCreditMemoTest extends TestCase
     /** The event can fire again on a later save, and a second refund is real money. */
     public function testReportsTheSameMemoOnlyOnce(): void
     {
-        $observer = new ReportCreditMemo($this->client(), $this->createStub(LoggerInterface::class));
+        $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
         $observer->execute($this->observerFor(['reported' => true]));
 
         self::assertSame([], $this->sent);
@@ -209,7 +210,7 @@ class ReportCreditMemoTest extends TestCase
 
     public function testIgnoresAMemoForNothing(): void
     {
-        $observer = new ReportCreditMemo($this->client(), $this->createStub(LoggerInterface::class));
+        $observer = new ReportCreditMemo($this->client(), new Money(), $this->createStub(LoggerInterface::class));
         $observer->execute($this->observerFor(['grandTotal' => 0.0]));
 
         self::assertSame([], $this->sent);
@@ -224,6 +225,7 @@ class ReportCreditMemoTest extends TestCase
     {
         $observer = new ReportCreditMemo(
             $this->client(new ApiException(new Phrase('This payment has been fully refunded'))),
+            new Money(),
             $this->createStub(LoggerInterface::class)
         );
 
@@ -243,7 +245,7 @@ class ReportCreditMemoTest extends TestCase
             'status' => 'PENDING',
             'msg' => 'Send the refund from your bank, then mark it complete in BriizPay.',
         ]);
-        $observer = new ReportCreditMemo($client, $this->createStub(LoggerInterface::class));
+        $observer = new ReportCreditMemo($client, new Money(), $this->createStub(LoggerInterface::class));
 
         $observer->execute($this->observerFor());
 

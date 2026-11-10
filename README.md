@@ -4,8 +4,8 @@
 customer chooses their bank, approves the payment in their banking app, and the
 money goes straight to the merchant's bank account.
 
-For Magento Open Source and Adobe Commerce 2.4 on the standard Luma-based
-checkout, PHP 8.1 to 8.4. Orders in pounds only.
+For Magento Open Source and Adobe Commerce 2.4.8 and 2.4.9 on the standard
+Luma-based checkout, PHP 8.4 or 8.5. Orders in pounds only.
 
 ## How it works
 
@@ -182,7 +182,7 @@ The full history is in [CHANGELOG.md](CHANGELOG.md). The highlights:
 Three gates, all runnable by anyone with the repository.
 
 ```bash
-composer test      # PHPUnit, 113 tests
+composer test      # PHPUnit
 composer phpcs     # the Magento coding standard
 composer phpstan   # static analysis at level 6 (needs a store, see below)
 ```
@@ -217,8 +217,8 @@ testbed and the BriizPay test environment.
 warnings.
 
 Four things are excluded, each scoped and with its reason in the file: docblocks
-that would restate a typed signature, line length in XML, static methods on the
-pure-arithmetic helpers, and two sniffs that misread the test stubs. They are
+that would restate a typed signature, line length in XML, static methods on
+PHPUnit data providers, and two sniffs that misread the test stubs. They are
 written as decisions rather than silences, so disagreeing with one is a
 three-line change.
 

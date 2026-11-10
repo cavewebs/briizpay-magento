@@ -67,4 +67,15 @@
     <type name="Magento\Quote\Api\CartTotalRepositoryInterface">
         <plugin name="briizpay_add_discount_offer" type="BriizPay\PayByBank\Plugin\Quote\AddDiscountOffer"/>
     </type>
+
+    <!-- Arithmetic helpers and the API client as interceptable services.
+         Magento cannot plugin a static method; these preferences are what
+         lets another module replace one without rewriting the call sites.
+         Client stays array-based until cavewebs/briizpay-php ships. -->
+    <preference for="BriizPay\PayByBank\Api\ClientInterface" type="BriizPay\PayByBank\Model\Api\Client"/>
+    <preference for="BriizPay\PayByBank\Api\MoneyInterface" type="BriizPay\PayByBank\Model\Money"/>
+    <preference for="BriizPay\PayByBank\Api\DiscountInterface" type="BriizPay\PayByBank\Model\Discount"/>
+    <preference for="BriizPay\PayByBank\Api\LineItemsInterface" type="BriizPay\PayByBank\Model\LineItems"/>
+    <preference for="BriizPay\PayByBank\Api\DocumentItemsInterface" type="BriizPay\PayByBank\Model\Total\DocumentItems"/>
+    <preference for="BriizPay\PayByBank\Api\DiscountCalculatorInterface" type="BriizPay\PayByBank\Model\DiscountCalculator"/>
 </config>
