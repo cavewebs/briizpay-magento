@@ -53,12 +53,10 @@ jobs:
           mkdir -p "$TOOLS_DIR"
           cd "$TOOLS_DIR"
           composer init --no-interaction --name=briizpay/ci-tools
-          composer config minimum-stability dev
-          composer config prefer-stable true
           composer config repositories.briizpay-php vcs https://github.com/cavewebs/briizpay-php
           composer require --no-interaction --no-progress \
             phpunit/phpunit:^9.6 \
-            briizpay/briizpay-php:dev-cursor/php-sdk-9650
+            briizpay/briizpay-php:^0.1
 
       - name: Unit tests
         run: "$TOOLS_DIR/vendor/bin/phpunit --configuration phpunit.xml.dist"

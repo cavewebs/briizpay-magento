@@ -26,11 +26,9 @@ merge, then tag `vX.Y.Z` on that commit.
   (`briizpay/briizpay-php`). Calls use typed DTOs. Magento keys stay
   store-scoped; the SDK Config is immutable, so each key gets its own client.
   Magento Curl is the PSR-18 transport, with the same 20s timeout as before.
-  Webhook signatures go through the SDK verifier.
-
-  TODO: once `briizpay/briizpay-php` is tagged, change the Composer require
-  from `dev-cursor/php-sdk-9650` (and the VCS repository) to `^0.1`. Do not
-  tag that SDK from this work.
+  Webhook signatures go through the SDK verifier. Composer requires
+  `briizpay/briizpay-php:^0.1`. The GitHub VCS repository stays until that
+  package is on Packagist; drop it then.
 
 ### Added
 

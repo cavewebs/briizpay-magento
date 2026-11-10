@@ -16,7 +16,7 @@
     ],
     "require": {
         "php": "~8.4.0||~8.5.0",
-        "briizpay/briizpay-php": "dev-cursor/php-sdk-9650",
+        "briizpay/briizpay-php": "^0.1",
         "magento/framework": "^103.0",
         "magento/module-backend": "^102.0",
         "magento/module-checkout": "^100.4",

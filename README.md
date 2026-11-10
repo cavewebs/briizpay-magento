@@ -73,8 +73,9 @@ link on BriizPay so it cannot be paid later.
 
 With Composer, from the Magento root:
 
-The module talks to BriizPay through `briizpay/briizpay-php`. Until that SDK
-is tagged, Composer needs its GitHub repository as well as this module:
+The module talks to BriizPay through `briizpay/briizpay-php` `^0.1`. Until that
+package is on Packagist, Composer needs its GitHub repository as well as this
+module:
 
 ```bash
 composer config repositories.briizpay-php vcs https://github.com/cavewebs/briizpay-php
@@ -86,8 +87,7 @@ bin/magento setup:static-content:deploy en_GB
 bin/magento cache:flush
 ```
 
-Change the SDK constraint to `^0.1` and drop the VCS repository once the SDK
-is tagged. Do not tag it from this module.
+Drop the VCS repository once the SDK is on Packagist.
 
 Or without Composer, unzip the release into `app/code/BriizPay/PayByBank` so
 that `registration.php` sits directly in that folder, and run the same

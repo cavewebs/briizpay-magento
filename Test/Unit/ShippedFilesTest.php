@@ -144,11 +144,11 @@ class ShippedFilesTest extends TestCase
         ];
     }
 
-    public function testTheSdkIsRequiredFromItsVcsBranchUntilTagged(): void
+    public function testTheSdkIsRequiredAsAStableConstraintUntilPackagist(): void
     {
         $composer = json_decode(self::read('composer.json'), true, 512, JSON_THROW_ON_ERROR);
 
-        self::assertSame('dev-cursor/php-sdk-9650', $composer['require']['briizpay/briizpay-php']);
+        self::assertSame('^0.1', $composer['require']['briizpay/briizpay-php']);
         self::assertSame('vcs', $composer['repositories'][0]['type']);
         self::assertSame('https://github.com/cavewebs/briizpay-php', $composer['repositories'][0]['url']);
     }
