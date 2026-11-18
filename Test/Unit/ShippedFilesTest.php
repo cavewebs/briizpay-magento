@@ -161,8 +161,13 @@ class ShippedFilesTest extends TestCase
             '/<argument name="timeout" xsi:type="number">20</',
             $di
         );
-        self::assertStringContainsString(
-            'preference for="BriizPay\\Sdk\\Contract\\WebhookVerifierInterface"',
+        self::assertMatchesRegularExpression(
+            '/preference for="' . preg_quote('BriizPay\Sdk\Contract\WebhookVerifierInterface', '/')
+            . '" type="' . preg_quote('BriizPay\PayByBank\Model\WebhookVerifier', '/') . '"/',
+            $di
+        );
+        self::assertStringNotContainsString(
+            'type="BriizPay\\Sdk\\Webhook\\WebhookSignature"',
             $di
         );
         self::assertStringContainsString('BriizPay\\PayByBank\\Model\\Http\\CurlClient', $di);

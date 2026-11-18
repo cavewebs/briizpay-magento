@@ -10,7 +10,8 @@ use BriizPay\Sdk\Webhook\WebhookSignature;
 /**
  * Checking that a webhook really came from BriizPay.
  *
- * Delegates to the SDK verifier (HMAC-SHA256 of timestamp.body, 300s skew).
+ * Delegates to the SDK verifier (HMAC-SHA256 of timestamp.body, 300s skew)
+ * through the module adapter Magento injects for WebhookVerifierInterface.
  * The Magento class stays so Magento can inject and intercept it.
  *
  * @api
