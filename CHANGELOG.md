@@ -11,6 +11,14 @@ merge, then tag `vX.Y.Z` on that commit.
 
 ## [Unreleased]
 
+### Fixed
+
+- `bin/magento setup:di:compile` failed on Magento 2.4.8 and 2.4.9 because
+  `etc/di.xml` preferred the SDK class `BriizPay\Sdk\Webhook\WebhookSignature`,
+  which is not a Magento module class. Stores in production mode could not
+  install 2.0.0. The preference now points at a module adapter that implements
+  the SDK interface and delegates to `WebhookSignature`.
+
 ## [2.0.0] - 2026-11-10
 
 ### Changed

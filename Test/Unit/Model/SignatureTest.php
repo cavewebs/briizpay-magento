@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace BriizPay\PayByBank\Test\Unit\Model;
 
 use BriizPay\PayByBank\Model\Signature;
-use BriizPay\Sdk\Webhook\WebhookSignature;
+use BriizPay\PayByBank\Model\WebhookVerifier;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -40,7 +40,7 @@ class SignatureTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->signature = new Signature(new WebhookSignature());
+        $this->signature = new Signature(new WebhookVerifier());
     }
 
     private function header(?int $timestamp = null, ?string $v1 = null): string
