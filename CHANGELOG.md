@@ -11,6 +11,11 @@ merge, then tag `vX.Y.Z` on that commit.
 
 ## [Unreleased]
 
+### Changed
+
+- Dropped the GitHub VCS repository for `briizpay/briizpay-php` now that the
+  package is on Packagist.
+
 ## [2.0.0] - 2026-11-10
 
 ### Changed

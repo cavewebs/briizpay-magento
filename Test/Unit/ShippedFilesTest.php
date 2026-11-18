@@ -117,8 +117,7 @@ class ShippedFilesTest extends TestCase
 
     /**
      * Hosts live in the PHP SDK. Magento must not keep a second copy that
-     * could disagree with it, and it must still require the SDK branch that
-     * owns them until that SDK is tagged.
+     * could disagree with it.
      *
      * @dataProvider hostProvider
      */
@@ -144,13 +143,12 @@ class ShippedFilesTest extends TestCase
         ];
     }
 
-    public function testTheSdkIsRequiredAsAStableConstraintUntilPackagist(): void
+    public function testTheSdkIsRequiredFromPackagist(): void
     {
         $composer = json_decode(self::read('composer.json'), true, 512, JSON_THROW_ON_ERROR);
 
         self::assertSame('^0.1', $composer['require']['briizpay/briizpay-php']);
-        self::assertSame('vcs', $composer['repositories'][0]['type']);
-        self::assertSame('https://github.com/cavewebs/briizpay-php', $composer['repositories'][0]['url']);
+        self::assertArrayNotHasKey('repositories', $composer);
     }
 
     public function testHttpUsesATwentySecondTimeoutAndTheSdkVerifier(): void
