@@ -11,6 +11,8 @@ merge, then tag `vX.Y.Z` on that commit.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-18
+
 ### Fixed
 
 - `bin/magento setup:di:compile` failed on Magento 2.4.8 and 2.4.9 because
